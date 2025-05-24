@@ -220,24 +220,34 @@ export class AiTrainerComponent implements OnInit, OnDestroy, AfterViewInit {
           this.testStats = stats;
           this.cdr.detectChanges();
         });
-      }),
-      // Subscribe to NEAT stats - Enhanced subscription
-      this.aiService.neatStats$.subscribe(stats => {
-        this.ngZone.run(() => {
-          console.log('NEAT Stats received:', stats); // Debug log
-          this.neatStats = stats;
-          if (this.currentAlgorithm && this.currentAlgorithm.algorithmType === AlgorithmType.NEAT) {
-            this.currentAlgorithm.updateVisualizationInsights();
-            // Update NEAT network visualization if enabled and stats are available
-            if (this.showNetworkViz && stats && stats.generation > 0) {
-              this.createNEATNetworkVisualization();
-            }
-          }
-          this.cdr.detectChanges();
-        });
       })
     );
+    
+    // Subscribe to algorithm-specific stats after algorithm initialization
+    this.subscribeToAlgorithmStats();
     this.generateMaze(); 
+  }
+
+  private subscribeToAlgorithmStats(): void {
+    // Subscribe to current algorithm's NEAT stats
+    if (this.currentAlgorithm.algorithmType === AlgorithmType.NEAT) {
+      this.subscriptions.push(
+        this.currentAlgorithm.neatStats$.subscribe(stats => {
+          this.ngZone.run(() => {
+            console.log('NEAT Stats received from algorithm:', stats); // Debug log
+            this.neatStats = stats;
+            if (stats) {
+              this.currentAlgorithm.updateVisualizationInsights();
+              // Update NEAT network visualization if enabled and stats are available
+              if (this.showNetworkViz && stats.generation > 0) {
+                this.createNEATNetworkVisualization();
+              }
+            }
+            this.cdr.detectChanges();
+          });
+        })
+      );
+    }
   }
 
   ngAfterViewInit(): void {
@@ -846,6 +856,9 @@ export class AiTrainerComponent implements OnInit, OnDestroy, AfterViewInit {
     // Reset all stats and visualization immediately
     this.currentAlgorithm.resetVisualizationState();
     this.resetVisualizationState();
+    
+    // Re-subscribe to the new algorithm's stats
+    this.subscribeToAlgorithmStats();
     
     // Update network visualization status based on new algorithm
     if (this.selectedAlgorithm === AlgorithmType.DQN) {

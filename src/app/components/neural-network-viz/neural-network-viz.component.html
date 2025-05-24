@@ -36,4 +36,99 @@
       </div>
     </mat-card-content>
   </mat-card>
-</div> 
+
+  <!-- NEAT Evolution Progress Section -->
+  <mat-card class="viz-card neat-evolution-card" *ngIf="isNeatActive">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>account_tree</mat-icon>
+        NEAT Evolution Progress
+      </mat-card-title>
+      <div class="header-actions">
+        <button mat-icon-button (click)="resetNeatVisualization()" matTooltip="Reset Evolution View">
+          <mat-icon>restart_alt</mat-icon>
+        </button>
+      </div>
+    </mat-card-header>
+    <mat-card-content>
+      <!-- Evolution Tree Visualization -->
+      <div class="evolution-container">
+        <svg #evolutionSvg class="evolution-svg"></svg>
+        
+        <!-- Species Population Bubbles -->
+        <div class="species-bubbles-container">
+          <div class="species-bubble" 
+               *ngFor="let species of neatStats?.species; trackBy: trackSpecies"
+               [style.transform]="getSpeciesBubbleTransform(species)"
+               [style.background]="getSpeciesColor(species.id)"
+               [attr.data-species-id]="species.id"
+               matTooltip="Species {{species.id}}: {{species.size}} members, Avg Fitness: {{species.averageFitness?.toFixed(1)}}">
+            <span class="bubble-text">{{species.size}}</span>
+            <div class="fitness-bar" [style.height.%]="getFitnessBarHeight(species)"></div>
+          </div>
+        </div>
+
+        <!-- Evolutionary Stats Dashboard -->
+        <div class="evolution-dashboard">
+          <div class="stat-panel generation-panel">
+            <mat-icon>trending_up</mat-icon>
+            <div class="stat-content">
+              <span class="stat-label">Generation</span>
+              <span class="stat-value">{{neatStats?.generation || 0}}</span>
+            </div>
+          </div>
+          
+          <div class="stat-panel fitness-panel">
+            <mat-icon>fitness_center</mat-icon>
+            <div class="stat-content">
+              <span class="stat-label">Best Fitness</span>
+              <span class="stat-value">{{(neatStats?.bestFitness || 0) | number:'1.1-1'}}</span>
+            </div>
+          </div>
+          
+          <div class="stat-panel species-panel">
+            <mat-icon>group</mat-icon>
+            <div class="stat-content">
+              <span class="stat-label">Species</span>
+              <span class="stat-value">{{neatStats?.speciesCount || 0}}</span>
+            </div>
+          </div>
+          
+          <div class="stat-panel population-panel">
+            <mat-icon>people</mat-icon>
+            <div class="stat-content">
+              <span class="stat-label">Population</span>
+              <span class="stat-value">{{neatStats?.populationSize || 0}}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Fitness Progress Graph -->
+        <div class="fitness-graph-container">
+          <h4>Fitness Evolution</h4>
+          <svg #fitnessGraphSvg class="fitness-graph-svg"></svg>
+        </div>
+
+        <!-- Champion Network Display -->
+        <div class="champion-network" *ngIf="championGenome">
+          <h4>
+            <mat-icon>emoji_events</mat-icon>
+            Champion Network (Gen {{neatStats?.generation}})
+          </h4>
+          <svg #championSvg class="champion-svg"></svg>
+          <div class="champion-stats">
+            <span>Fitness: {{championGenome.fitness | number:'1.2-2'}}</span>
+            <span>Nodes: {{championGenome.nodes?.length || 0}}</span>
+            <span>Connections: {{championGenome.connections?.length || 0}}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Evolution Status -->
+      <div class="evolution-status" *ngIf="!neatStats">
+        <mat-icon class="status-icon">psychology</mat-icon>
+        <p>Start NEAT training to see evolutionary progress...</p>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

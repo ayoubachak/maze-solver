@@ -28,12 +28,38 @@ export class NEATAlgorithm extends BaseAlgorithm implements OnDestroy {
 
   private _networkStatusMessage = 'Start NEAT training to see evolved neural networks.';
   private readonly neatStatsSubscription: Subscription;
+  private readonly trainingStatusSubscription: Subscription;
 
   constructor(private readonly aiService: AiService) {
     super();
     // Subscribe to AI service NEAT stats and pass them through to our own subject
     this.neatStatsSubscription = this.aiService.neatStats$.subscribe(stats => {
       this.neatStatsSubject.next(stats);
+      if (stats) {
+        this.updateVisualizationInsights();
+      }
+    });
+
+    // Subscribe to training status to update messages
+    this.trainingStatusSubscription = this.aiService.trainingStatus$.subscribe(status => {
+      if (status.isRunning) {
+        if (status.isPaused) {
+          this._networkStatusMessage = 'NEAT training paused...';
+        } else {
+          const stats = this.neatStatsSubject.value;
+          if (stats && stats.generation > 0) {
+            this._networkStatusMessage = `Generation ${stats.generation}: Evolving networks... Best fitness: ${stats.bestFitness.toFixed(2)}`;
+          } else {
+            this._networkStatusMessage = 'Starting NEAT evolution...';
+          }
+        }
+      } else {
+        if (status.message) {
+          this._networkStatusMessage = status.message;
+        } else {
+          this._networkStatusMessage = 'NEAT training stopped.';
+        }
+      }
     });
   }
 
@@ -69,8 +95,7 @@ export class NEATAlgorithm extends BaseAlgorithm implements OnDestroy {
   }
 
   startTraining(): void {
-    this._networkStatusMessage = 'NEAT networks are evolving...';
-    // Use the configured episodes as generation limit instead of hardcoded value
+    this._networkStatusMessage = 'Initializing NEAT population...';
     this.aiService.startTraining(AlgorithmType.NEAT, this.config);
   }
 
@@ -115,7 +140,11 @@ export class NEATAlgorithm extends BaseAlgorithm implements OnDestroy {
   updateVisualizationInsights(): void {
     const stats = this.neatStatsSubject.value;
     if (stats) {
-      this._networkStatusMessage = `Generation ${stats.generation}: Best fitness ${stats.bestFitness.toFixed(2)}`;
+      if (stats.generation === 0) {
+        this._networkStatusMessage = 'NEAT population initialized. Starting evolution...';
+      } else {
+        this._networkStatusMessage = `Generation ${stats.generation}: Best fitness ${stats.bestFitness.toFixed(2)}, Species: ${stats.speciesCount}`;
+      }
     }
   }
 
@@ -134,6 +163,9 @@ export class NEATAlgorithm extends BaseAlgorithm implements OnDestroy {
   ngOnDestroy(): void {
     if (this.neatStatsSubscription) {
       this.neatStatsSubscription.unsubscribe();
+    }
+    if (this.trainingStatusSubscription) {
+      this.trainingStatusSubscription.unsubscribe();
     }
   }
 }

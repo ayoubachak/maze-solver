@@ -197,4 +197,10 @@ export interface NEATStats {
     steps: number;
     success: boolean;
   };
+  species: {
+    id: number;
+    size: number;
+    averageFitness: number;
+    staleness: number;
+  }[];
 }

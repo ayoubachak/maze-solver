@@ -3,11 +3,12 @@ import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { Subscription } from 'rxjs';
 import * as d3 from 'd3';
 
 import { AiService } from '../../services/ai.service';
-import { NetworkVisualization, NetworkLayer, Neuron, Connection } from '../../models/ai.model';
+import { NetworkVisualization, NetworkLayer, Neuron, Connection, NEATStats, NEATGenome } from '../../models/ai.model';
 import { AlgorithmType } from '../../models/maze.model'; // For context
 
 @Component({
@@ -17,15 +18,22 @@ import { AlgorithmType } from '../../models/maze.model'; // For context
     CommonModule,
     MatCardModule,
     MatButtonModule,
-    MatIconModule
+    MatIconModule,
+    MatTooltipModule
   ],
   templateUrl: './neural-network-viz.component.html',
   styleUrl: './neural-network-viz.component.css'
 })
 export class NeuralNetworkVizComponent implements OnInit, OnDestroy {
   @ViewChild('networkSvg', { static: false }) private networkSvgRef!: ElementRef<SVGElement>;
+  @ViewChild('evolutionSvg', { static: false }) private evolutionSvgRef!: ElementRef<SVGElement>;
+  @ViewChild('fitnessGraphSvg', { static: false }) private fitnessGraphSvgRef!: ElementRef<SVGElement>;
+  @ViewChild('championSvg', { static: false }) private championSvgRef!: ElementRef<SVGElement>;
   
   private svg: any;
+  private evolutionSvg: any;
+  private fitnessGraphSvg: any;
+  private championSvg: any;
   private width = 800;
   private height = 500;
   private margin = { top: 20, right: 150, bottom: 20, left: 150 };
@@ -33,33 +41,47 @@ export class NeuralNetworkVizComponent implements OnInit, OnDestroy {
   networkData: NetworkVisualization | null = null;
   private subscriptions: Subscription[] = [];
   
+  // DQN properties
   isDqnActive = false;
   statusMessage = 'Network visualization will appear here when a DQN agent is active.';
+
+  // NEAT properties
+  isNeatActive = false;
+  neatStats: NEATStats | null = null;
+  championGenome: NEATGenome | null = null;
+  private fitnessHistory: { generation: number; bestFitness: number; avgFitness: number }[] = [];
+  private speciesColors: Map<number, string> = new Map();
+  private readonly speciesColorPalette = [
+    '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', 
+    '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9'
+  ];
 
   constructor(private aiService: AiService, private ngZone: NgZone) {}
 
   ngOnInit(): void {
-    // Placeholder: In a real scenario, this would be dynamically updated
-    // by the AiService when a DQN model is active and provides visualization data.
     this.subscriptions.push(
       this.aiService.trainingStatus$.subscribe(status => {
-        // Simplified: Assume DQN is active if any AI training is running
-        // A more robust check for AlgorithmType.DQN would be needed from AiService
         this.isDqnActive = status.isRunning; 
         if (!status.isRunning) {
             this.statusMessage = 'DQN training is not currently active. Start training a DQN agent to see the visualization.';
             this.clearVisualization();
         }
       }),
-      // Placeholder for a dedicated network data observable from AiService
-      // this.aiService.networkVisualization$.subscribe(data => { ...
+      // Subscribe to NEAT stats for evolutionary visualization
+      this.aiService.neatStats$.subscribe(stats => {
+        this.neatStats = stats;
+        this.isNeatActive = stats !== null;
+        if (stats) {
+          this.updateFitnessHistory(stats);
+          this.updateChampionGenome(stats);
+          this.drawEvolutionVisualization();
+          this.drawFitnessGraph();
+          this.drawChampionNetwork();
+        }
+      })
     );
     
-    // For now, let's create a sample network if no real data is coming
-    // if (!this.networkData && this.isDqnActive) { 
-    //    this.createSampleNetwork(); 
-    // }
-    this.createSampleNetwork(); // Draw a sample network initially for layout purposes
+    this.createSampleNetwork();
   }
 
   ngOnDestroy(): void {
@@ -227,4 +249,262 @@ export class NeuralNetworkVizComponent implements OnInit, OnDestroy {
         this.statusMessage = 'No network data available to refresh.';
     }
   }
-} 
+
+  // NEAT Visualization Methods
+  private updateFitnessHistory(stats: NEATStats): void {
+    const entry = {
+      generation: stats.generation,
+      bestFitness: stats.bestFitness,
+      avgFitness: stats.averageFitness
+    };
+    
+    // Only add if it's a new generation
+    const lastEntry = this.fitnessHistory[this.fitnessHistory.length - 1];
+    if (!lastEntry || lastEntry.generation !== stats.generation) {
+      this.fitnessHistory.push(entry);
+      // Keep only last 50 generations for performance
+      if (this.fitnessHistory.length > 50) {
+        this.fitnessHistory.shift();
+      }
+    }
+  }
+
+  private updateChampionGenome(stats: NEATStats): void {
+    if (stats.topAgent && this.aiService.getNEATVisualizationData) {
+      const neatData = this.aiService.getNEATVisualizationData();
+      this.championGenome = neatData?.bestGenome || null;
+    }
+  }
+
+  // Template helper methods
+  trackSpecies(index: number, species: any): number {
+    return species.id;
+  }
+
+  getSpeciesBubbleTransform(species: any): string {
+    const angle = (species.id * 360 / (this.neatStats?.speciesCount || 1)) * (Math.PI / 180);
+    const radius = 80 + (species.size * 2);
+    const x = Math.cos(angle) * radius + 200;
+    const y = Math.sin(angle) * radius + 150;
+    return `translate(${x}px, ${y}px)`;
+  }
+
+  getSpeciesColor(speciesId: number): string {
+    if (!this.speciesColors.has(speciesId)) {
+      const colorIndex = speciesId % this.speciesColorPalette.length;
+      this.speciesColors.set(speciesId, this.speciesColorPalette[colorIndex]);
+    }
+    return this.speciesColors.get(speciesId)!;
+  }
+
+  getFitnessBarHeight(species: any): number {
+    const maxFitness = this.neatStats?.bestFitness || 1;
+    return Math.min(100, (species.averageFitness / maxFitness) * 100);
+  }
+
+  private drawEvolutionVisualization(): void {
+    if (!this.evolutionSvgRef || !this.neatStats) return;
+
+    this.ngZone.runOutsideAngular(() => {
+      d3.select(this.evolutionSvgRef.nativeElement).selectAll('*').remove();
+
+      this.evolutionSvg = d3.select(this.evolutionSvgRef.nativeElement)
+        .attr('width', 400)
+        .attr('height', 300);
+
+      // Draw evolutionary tree background
+      this.evolutionSvg.append('circle')
+        .attr('cx', 200)
+        .attr('cy', 150)
+        .attr('r', 120)
+        .attr('fill', 'none')
+        .attr('stroke', '#e0e0e0')
+        .attr('stroke-width', 2)
+        .attr('stroke-dasharray', '5,5');
+
+      // Add generation indicator
+      this.evolutionSvg.append('text')
+        .attr('x', 200)
+        .attr('y', 30)
+        .attr('text-anchor', 'middle')
+        .attr('font-size', '16px')
+        .attr('font-weight', 'bold')
+        .attr('fill', '#333')
+        .text(`Generation ${this.neatStats?.generation ?? 0}`);
+
+      // Add fitness indicator in center
+      this.evolutionSvg.append('text')
+        .attr('x', 200)
+        .attr('y', 145)
+        .attr('text-anchor', 'middle')
+        .attr('font-size', '12px')
+        .attr('fill', '#666')
+        .text('Best Fitness');
+
+      this.evolutionSvg.append('text')
+        .attr('x', 200)
+        .attr('y', 165)
+        .attr('text-anchor', 'middle')
+        .attr('font-size', '18px')
+        .attr('font-weight', 'bold')
+        .attr('fill', '#4CAF50')
+        .text((this.neatStats?.bestFitness ?? 0).toFixed(1));
+    });
+  }
+
+  private drawFitnessGraph(): void {
+    if (!this.fitnessGraphSvgRef || this.fitnessHistory.length === 0) return;
+
+    this.ngZone.runOutsideAngular(() => {
+      d3.select(this.fitnessGraphSvgRef.nativeElement).selectAll('*').remove();
+
+      const width = 400;
+      const height = 200;
+      const margin = { top: 20, right: 30, bottom: 30, left: 50 };
+
+      this.fitnessGraphSvg = d3.select(this.fitnessGraphSvgRef.nativeElement)
+        .attr('width', width)
+        .attr('height', height);
+
+      const xScale = d3.scaleLinear()
+        .domain(d3.extent(this.fitnessHistory, d => d.generation) as [number, number])
+        .range([margin.left, width - margin.right]);
+
+      const yScale = d3.scaleLinear()
+        .domain([0, d3.max(this.fitnessHistory, d => d.bestFitness) || 1])
+        .range([height - margin.bottom, margin.top]);
+
+      // Draw best fitness line
+      const bestLine = d3.line<any>()
+        .x(d => xScale(d.generation))
+        .y(d => yScale(d.bestFitness))
+        .curve(d3.curveMonotoneX);
+
+      this.fitnessGraphSvg.append('path')
+        .datum(this.fitnessHistory)
+        .attr('fill', 'none')
+        .attr('stroke', '#4CAF50')
+        .attr('stroke-width', 3)
+        .attr('d', bestLine);
+
+      // Draw average fitness line
+      const avgLine = d3.line<any>()
+        .x(d => xScale(d.generation))
+        .y(d => yScale(d.avgFitness))
+        .curve(d3.curveMonotoneX);
+
+      this.fitnessGraphSvg.append('path')
+        .datum(this.fitnessHistory)
+        .attr('fill', 'none')
+        .attr('stroke', '#2196F3')
+        .attr('stroke-width', 2)
+        .attr('stroke-dasharray', '5,5')
+        .attr('d', avgLine);
+
+      // Add axes
+      this.fitnessGraphSvg.append('g')
+        .attr('transform', `translate(0,${height - margin.bottom})`)
+        .call(d3.axisBottom(xScale));
+
+      this.fitnessGraphSvg.append('g')
+        .attr('transform', `translate(${margin.left},0)`)
+        .call(d3.axisLeft(yScale));
+    });
+  }
+
+  private drawChampionNetwork(): void {
+    if (!this.championSvgRef || !this.championGenome) return;
+
+    this.ngZone.runOutsideAngular(() => {
+      d3.select(this.championSvgRef.nativeElement).selectAll('*').remove();
+
+      const width = 400;
+      const height = 200;
+
+      this.championSvg = d3.select(this.championSvgRef.nativeElement)
+        .attr('width', width)
+        .attr('height', height);
+
+      // Create a simplified network layout
+      const nodes = this.championGenome.nodes || [];
+      const connections = this.championGenome.connections || [];
+
+      // Position nodes by type
+      const inputNodes = nodes.filter(n => n.type === 'input');
+      const hiddenNodes = nodes.filter(n => n.type === 'hidden');
+      const outputNodes = nodes.filter(n => n.type === 'output');
+
+      const nodePositions = new Map();
+
+      // Position input nodes
+      inputNodes.forEach((node, i) => {
+        nodePositions.set(node.id, {
+          x: 50,
+          y: 50 + (i * (height - 100) / Math.max(1, inputNodes.length - 1))
+        });
+      });
+
+      // Position output nodes
+      outputNodes.forEach((node, i) => {
+        nodePositions.set(node.id, {
+          x: width - 50,
+          y: 50 + (i * (height - 100) / Math.max(1, outputNodes.length - 1))
+        });
+      });
+
+      // Position hidden nodes
+      hiddenNodes.forEach((node, i) => {
+        nodePositions.set(node.id, {
+          x: 150 + (i * 100),
+          y: height / 2 + (Math.random() - 0.5) * 60
+        });
+      });
+
+      // Draw connections
+      connections.filter(c => c.enabled).forEach(conn => {
+        const from = nodePositions.get(conn.inputNode);
+        const to = nodePositions.get(conn.outputNode);
+        if (from && to) {
+          this.championSvg.append('line')
+            .attr('x1', from.x)
+            .attr('y1', from.y)
+            .attr('x2', to.x)
+            .attr('y2', to.y)
+            .attr('stroke', conn.weight > 0 ? '#4CAF50' : '#FF5722')
+            .attr('stroke-width', Math.abs(conn.weight) * 2 + 0.5)
+            .attr('opacity', 0.7);
+        }
+      });
+
+      // Draw nodes
+      nodes.forEach(node => {
+        const pos = nodePositions.get(node.id);
+        if (pos) {
+          this.championSvg.append('circle')
+            .attr('cx', pos.x)
+            .attr('cy', pos.y)
+            .attr('r', 8)
+            .attr('fill', node.type === 'input' ? '#4CAF50' : 
+                         node.type === 'output' ? '#2196F3' : '#FF9800')
+            .attr('stroke', '#333')
+            .attr('stroke-width', 1);
+        }
+      });
+    });
+  }
+
+  resetNeatVisualization(): void {
+    this.fitnessHistory = [];
+    this.speciesColors.clear();
+    this.championGenome = null;
+    if (this.evolutionSvgRef) {
+      d3.select(this.evolutionSvgRef.nativeElement).selectAll('*').remove();
+    }
+    if (this.fitnessGraphSvgRef) {
+      d3.select(this.fitnessGraphSvgRef.nativeElement).selectAll('*').remove();
+    }
+    if (this.championSvgRef) {
+      d3.select(this.championSvgRef.nativeElement).selectAll('*').remove();
+    }
+  }
+}

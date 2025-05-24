@@ -229,34 +229,55 @@ export class AiService {
   }
 
   private async runNEATTrainingLoop(): Promise<void> {
-    // Use the configured maxStepsPerAgent as generation limit, or default to 50
-    const maxGenerations = this.neatConfig?.maxStepsPerAgent || 50;
+    // Use a proper generation limit (50 generations by default)
+    const maxGenerations = 50;
     
-    const runGeneration = async () => {
-      if (!this.isPaused && this.neatConfig && this.neatGeneration < maxGenerations) {
+    console.log('Starting NEAT training loop...');
+    
+    // Add a small delay to ensure initialization is complete
+    setTimeout(async () => {
+      while (!this.isPaused && this.neatConfig && this.neatGeneration < maxGenerations) {
         console.log(`Running NEAT generation ${this.neatGeneration + 1}/${maxGenerations}`);
-        await this.runNEATGeneration();
         
-        // Check for early termination conditions
-        if (this.neatStagnationCounter >= (this.neatConfig.maxStagnation || this.NEAT_MAX_STAGNATION)) {
-          this.stopTraining(`NEAT training completed: Stagnated for ${this.neatConfig.maxStagnation || this.NEAT_MAX_STAGNATION} generations. Best fitness: ${this.neatBestFitness.toFixed(2)}`);
+        // Update status with current generation
+        this.ngZone.run(() => {
+          this.trainingStatusSubject.next({ 
+            isRunning: true, 
+            isPaused: false, 
+            message: `Generation ${this.neatGeneration + 1}: Evaluating population...` 
+          });
+        });
+        
+        try {
+          await this.runNEATGeneration();
+          
+          // Check for early termination conditions
+          if (this.neatStagnationCounter >= (this.neatConfig.maxStagnation || this.NEAT_MAX_STAGNATION)) {
+            this.stopTraining(`NEAT training completed: Stagnated for ${this.neatConfig.maxStagnation || this.NEAT_MAX_STAGNATION} generations. Best fitness: ${this.neatBestFitness.toFixed(2)}`);
+            return;
+          }
+          
+          // Check if we found a good solution
+          if (this.neatBestFitness > 100) {
+            this.stopTraining(`NEAT training completed: Solution found! Best fitness: ${this.neatBestFitness.toFixed(2)}`);
+            return;
+          }
+          
+          // Add a small delay between generations for visualization
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
+        } catch (error) {
+          console.error('Error in NEAT generation:', error);
+          this.stopTraining(`NEAT training stopped due to error: ${error}`);
           return;
         }
-        
-        // Check if we found a good solution
-        if (this.neatBestFitness > 100) {
-          this.stopTraining(`NEAT training completed: Solution found! Best fitness: ${this.neatBestFitness.toFixed(2)}`);
-          return;
-        }
-        
-        // Schedule next generation
-        setTimeout(() => runGeneration(), 100);
-      } else if (!this.isPaused && this.neatConfig && this.neatGeneration >= maxGenerations) {
+      }
+      
+      // If we exit the loop naturally, training is complete
+      if (!this.isPaused && this.neatConfig && this.neatGeneration >= maxGenerations) {
         this.stopTraining(`NEAT training completed: All ${maxGenerations} generations finished. Best fitness: ${this.neatBestFitness.toFixed(2)}`);
       }
-    };
-
-    await runGeneration();
+    }, 100); // Small delay to ensure everything is initialized
   }
 
   pauseTraining(): void {
@@ -858,6 +879,15 @@ export class AiService {
   // NEAT Algorithm Implementation
   private initializeNEAT(): void {
     console.log('Initializing NEAT algorithm...');
+    
+    // Update status to show initialization in progress
+    this.trainingStatusSubject.next({ 
+      isRunning: true, 
+      isPaused: false, 
+      message: 'Initializing NEAT population...' 
+    });
+    
+    // Initialize population
     this.initializeNEATPopulation();
     
     // Publish initial stats immediately after initialization
@@ -872,6 +902,13 @@ export class AiService {
         success: false,
         averageReward: 0,
         successRate: 0
+      });
+      
+      // Update status to show initialization complete and training starting
+      this.trainingStatusSubject.next({ 
+        isRunning: true, 
+        isPaused: false, 
+        message: 'NEAT population initialized. Starting evolution...' 
       });
     });
     
@@ -1414,7 +1451,7 @@ export class AiService {
   private getNEATStats(): NEATStats {
     const fitnesses = this.neatPopulation.map(g => g.fitness);
     const bestGenome = this.neatPopulation.reduce((best, current) => 
-      current.fitness > best.fitness ? current : best
+      current.fitness > best.fitness ? current : best, this.neatPopulation[0]
     );
 
     return {
@@ -1429,7 +1466,13 @@ export class AiService {
         fitness: bestGenome.fitness,
         steps: 0,
         success: bestGenome.fitness > 50
-      }
+      },
+      species: this.neatSpecies.map(s => ({
+        id: s.id,
+        size: s.members.length,
+        averageFitness: s.averageFitness,
+        staleness: s.staleness
+      }))
     };
   }
 
