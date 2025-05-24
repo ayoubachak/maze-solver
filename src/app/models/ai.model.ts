@@ -105,8 +105,96 @@ export interface VisualizationSettings {
 }
 
 export interface VisualizationData {
-  visitedCells: Map<string, number>;
-  explorationHeatmap: Map<string, number>;
-  agentTrail: Position[];
-  currentPosition: Position | null;
+  agentPath: Position[];
+  exploredCells: Position[];
+  heatmap: Map<string, number>;
+  performanceMetrics: {
+    fps: number;
+    updateCount: number;
+    memoryUsage: number;
+  };
+}
+
+// NEAT (NeuroEvolution of Augmenting Topologies) interfaces
+export interface NEATGenome {
+  id: number;
+  nodes: NEATNode[];
+  connections: NEATConnection[];
+  fitness: number;
+  adjustedFitness: number;
+  species: number;
+  generation: number;
+}
+
+export interface NEATNode {
+  id: number;
+  type: 'input' | 'hidden' | 'output';
+  x: number; // For visualization
+  y: number; // For visualization
+  value: number;
+  bias: number;
+}
+
+export interface NEATConnection {
+  innovationNumber: number;
+  inputNode: number;
+  outputNode: number;
+  weight: number;
+  enabled: boolean;
+}
+
+export interface NEATSpecies {
+  id: number;
+  representative: NEATGenome;
+  members: NEATGenome[];
+  averageFitness: number;
+  staleness: number;
+  topFitness: number;
+}
+
+export interface NEATInnovation {
+  innovationNumber: number;
+  inputNode: number;
+  outputNode: number;
+  newNodeId?: number;
+}
+
+export interface NEATAgent {
+  id: number;
+  genome: NEATGenome;
+  fitness: number;
+  steps: number;
+  success: boolean;
+}
+
+export interface NEATConfig {
+  populationSize: number;
+  maxStagnation: number;
+  speciesThreshold: number;
+  survivalRate: number;
+  mutationRate: number;
+  crossoverRate: number;
+  maxStepsPerAgent: number;
+  excessCoefficient: number;
+  disjointCoefficient: number;
+  weightCoefficient: number;
+  addNodeMutationRate: number;
+  addConnectionMutationRate: number;
+  weightMutationRate: number;
+  weightPerturbationRate: number;
+}
+
+export interface NEATStats {
+  generation: number;
+  bestFitness: number;
+  averageFitness: number;
+  speciesCount: number;
+  populationSize: number;
+  stagnationCounter: number;
+  topAgent: {
+    id: number;
+    fitness: number;
+    steps: number;
+    success: boolean;
+  };
 }

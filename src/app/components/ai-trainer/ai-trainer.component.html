@@ -21,7 +21,7 @@
         <mat-card-content>
           <mat-form-field appearance="outline" class="full-width">
             <mat-label>Choose AI Algorithm</mat-label>
-            <mat-select [(value)]="selectedAlgorithm" [disabled]="isRunning">
+            <mat-select [(value)]="selectedAlgorithm" [disabled]="isRunning" (ngModelChange)="onAlgorithmChange()">
               <mat-option *ngFor="let alg of algorithms" [value]="alg.value">
                 {{ alg.name }}
               </mat-option>

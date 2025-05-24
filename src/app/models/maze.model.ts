@@ -37,7 +37,8 @@ export enum AlgorithmType {
   DIJKSTRA = 'Dijkstra',
   ASTAR = 'A*',
   QLEARNING = 'Q-Learning',
-  DQN = 'Deep Q-Network'
+  DQN = 'Deep Q-Network',
+  NEAT = 'NEAT'
 }
 
 export interface AlgorithmStep {
@@ -53,4 +54,4 @@ export interface AlgorithmConfig {
   showVisited: boolean;
   showPath: boolean;
   diagonalMovement: boolean;
-} 
+}

@@ -87,7 +87,8 @@ export class AiTrainerComponent implements OnInit, OnDestroy, AfterViewInit {
   selectedAlgorithm: AlgorithmType = AlgorithmType.QLEARNING;
   algorithms = [
     { value: AlgorithmType.QLEARNING, name: 'Q-Learning', description: 'A model-free reinforcement learning algorithm to learn the quality of actions.' },
-    { value: AlgorithmType.DQN, name: 'Deep Q-Network (DQN)', description: 'Uses a neural network to approximate Q-values, suitable for complex states.' }
+    { value: AlgorithmType.DQN, name: 'Deep Q-Network (DQN)', description: 'Uses a neural network to approximate Q-values, suitable for complex states.' },
+    { value: AlgorithmType.NEAT, name: 'NEAT', description: 'NeuroEvolution of Augmenting Topologies - evolves neural network structure and weights through genetic algorithms.' }
   ];
 
   qLearningConfig: TrainingConfig = {
@@ -212,6 +213,10 @@ export class AiTrainerComponent implements OnInit, OnDestroy, AfterViewInit {
 
   startTraining(): void {
     if (!this.maze) return;
+    
+    // Reset visualization state when starting new training
+    this.resetVisualizationState();
+    
     this.aiService.startTraining(this.selectedAlgorithm, this.qLearningConfig, this.dqnConfig);
   }
 
@@ -652,5 +657,45 @@ export class AiTrainerComponent implements OnInit, OnDestroy, AfterViewInit {
     }
     
     return classes.join(' ');
+  }
+
+  private resetVisualizationState(): void {
+    // Clear all visualization data
+    this.agentPath = [];
+    this.exploredCells.clear();
+    this.currentAgentPosition = null;
+    this.testStats = null;
+    
+    // Reset network visualization
+    this.networkData = null;
+    if (this.selectedAlgorithm === AlgorithmType.DQN) {
+      this.networkStatusMessage = 'Initializing neural network...';
+    } else {
+      this.networkStatusMessage = 'Network visualization will appear when DQN training starts.';
+    }
+    
+    // Clear any visual elements
+    this.clearVisualizationElements();
+  }
+
+  onAlgorithmChange(): void {
+    // Stop current training if running
+    if (this.isRunning) {
+      this.stopTraining();
+    }
+    
+    // Reset all stats and visualization immediately
+    this.resetVisualizationState();
+    
+    // Update network visualization status based on new algorithm
+    if (this.selectedAlgorithm === AlgorithmType.DQN) {
+      this.networkStatusMessage = 'Start DQN training to see neural network activity.';
+    } else {
+      this.networkStatusMessage = 'Network visualization is only available for DQN algorithm.';
+      this.showNetworkViz = false; // Hide network viz for non-DQN algorithms
+    }
+    
+    // Force change detection
+    this.cdr.detectChanges();
   }
 }
