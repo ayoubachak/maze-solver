@@ -5,8 +5,8 @@
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
-    "build:prod": "ng build --configuration production --base-href /maze-runner-ai/",
-    "deploy": "npm run build:prod && npx angular-cli-ghpages --dir=dist/maze-runner-ai",
+    "build:prod": "ng build --configuration production --base-href /maze-solver/",
+    "deploy": "npm run build:prod && npx angular-cli-ghpages --dir=dist/maze-runner-ai/browser",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
   },
