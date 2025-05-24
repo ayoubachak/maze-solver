@@ -44,7 +44,10 @@ export class AiTrainerComponent implements OnInit, OnDestroy, AfterViewInit {
   
   maze: Maze | null = null;
   isRunning = false;
+  isPaused = false;
+  isTesting = false;
   trainingStats: TrainingStats | null = null;
+  testStats: any = null;
   currentAgentPosition: { x: number, y: number } | null = null;
 
   // Visualization controls
@@ -130,10 +133,11 @@ export class AiTrainerComponent implements OnInit, OnDestroy, AfterViewInit {
       }),
       this.aiService.trainingStatus$.subscribe(status => {
         this.isRunning = status.isRunning;
+        this.isPaused = status.isPaused;
         this.isDqnActive = status.isRunning && this.selectedAlgorithm === AlgorithmType.DQN;
         
         if (!status.isRunning && status.message) {
-            console.log("Training complete: ", status.message);
+            console.log("Training status: ", status.message);
         }
         
         // Update network visualization status
@@ -149,6 +153,20 @@ export class AiTrainerComponent implements OnInit, OnDestroy, AfterViewInit {
         }
         
         this.cdr.detectChanges();
+      }),
+      // Subscribe to testing status
+      this.aiService.testingStatus$.subscribe(status => {
+        this.ngZone.run(() => {
+          this.isTesting = status.isRunning;
+          this.cdr.detectChanges();
+        });
+      }),
+      // Subscribe to test results
+      this.aiService.testStats$.subscribe(stats => {
+        this.ngZone.run(() => {
+          this.testStats = stats;
+          this.cdr.detectChanges();
+        });
       })
     );
     this.generateMaze(); 
@@ -176,8 +194,51 @@ export class AiTrainerComponent implements OnInit, OnDestroy, AfterViewInit {
     this.aiService.startTraining(this.selectedAlgorithm, this.qLearningConfig, this.dqnConfig);
   }
 
+  pauseTraining(): void {
+    this.aiService.pauseTraining();
+  }
+
+  resumeTraining(): void {
+    this.aiService.resumeTraining();
+  }
+
   stopTraining(): void {
     this.aiService.stopTraining();
+  }
+
+  testModel(): void {
+    if (!this.maze) return;
+    this.aiService.testModel(this.maze);
+  }
+
+  saveModel(): void {
+    this.aiService.saveModel();
+  }
+
+  loadModel(): void {
+    this.aiService.loadModel();
+  }
+
+  getTrainingProgress(): number {
+    return this.aiService.getCurrentProgress();
+  }
+
+  canTestModel(): boolean {
+    return !this.isRunning && this.trainingStats !== null && this.trainingStats.episode > 0;
+  }
+
+  canPauseResume(): boolean {
+    return this.isRunning;
+  }
+
+  getTestResultMessage(): string {
+    if (!this.testStats) return '';
+    
+    if (this.testStats.success) {
+      return `✅ Success! Reached goal in ${this.testStats.totalSteps} steps with reward ${this.testStats.reward.toFixed(1)}`;
+    } else {
+      return `❌ Failed to reach goal after ${this.testStats.totalSteps} steps. Reward: ${this.testStats.reward.toFixed(1)}`;
+    }
   }
 
   getCellClass(cellType: CellType, x: number, y: number): string {

@@ -355,7 +355,73 @@
   border-bottom: none;
 }
 
-/* Mobile Responsive Design */
+/* Training Status */
+.training-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 12px;
+  background-color: #f5f5f5;
+  border-radius: 8px;
+  border-left: 4px solid var(--primary-color);
+}
+
+.training-status mat-icon {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Test Results */
+.test-results {
+  margin-top: 16px;
+  padding: 12px;
+  border-radius: 8px;
+  background-color: #f8f9fa;
+  border-left: 4px solid #28a745;
+}
+
+.test-results.failed {
+  border-left-color: #dc3545;
+}
+
+.result-message {
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.test-details {
+  color: #666;
+}
+
+/* Button Groups */
+.btn-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.btn-group button {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 1200px) {
+  .btn-group {
+    flex-direction: column;
+  }
+  
+  .btn-group button {
+    width: 100%;
+  }
+}
+
 @media (max-width: 1400px) {
   .trainer-layout {
     grid-template-columns: 1fr 1fr; /* Two columns */

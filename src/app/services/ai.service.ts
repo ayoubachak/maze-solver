@@ -1,6 +1,7 @@
 import { Injectable, NgZone } from '@angular/core';
-import { BehaviorSubject, Observable, Subject, interval, Subscription } from 'rxjs';
+import { BehaviorSubject, Subject, interval, Subscription } from 'rxjs';
 import * as tf from '@tensorflow/tfjs';
+import { Sequential } from '@tensorflow/tfjs-layers';
 
 import { Maze, Position, CellType, AlgorithmType } from '../models/maze.model';
 import { 
@@ -16,33 +17,53 @@ interface QTable {
   [stateKey: string]: number[]; // qValues for each action
 }
 
+// Define valid activation types
+type ActivationType = 'relu' | 'sigmoid' | 'tanh' | 'linear';
+
+// Update NeuralNetworkConfig interface to use correct activation type
+interface NeuralNetworkConfigInternal extends Omit<NeuralNetworkConfig, 'activation'> {
+  activation: ActivationType;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class AiService {
   private maze: Maze | null = null;
   private qTable: QTable = {};
-  private dqnModel: tf.Sequential | null = null;
-  private targetDqnModel: tf.Sequential | null = null;
+  private dqnModel: Sequential | null = null;
+  private targetDqnModel: Sequential | null = null;
   private replayMemory: Experience[] = [];
+  private currentNnConfig: NeuralNetworkConfigInternal | null = null;
 
-  private trainingStatusSubject = new BehaviorSubject<{ isRunning: boolean, message?: string }>({ isRunning: false });
-  private trainingStatsSubject = new BehaviorSubject<TrainingStats | null>(null);
-  private agentMovedSubject = new Subject<Position>();
+  private readonly trainingStatusSubject = new BehaviorSubject<{ isRunning: boolean, isPaused: boolean, message?: string }>({ isRunning: false, isPaused: false });
+  private readonly trainingStatsSubject = new BehaviorSubject<TrainingStats | null>(null);
+  private readonly agentMovedSubject = new Subject<Position>();
   private trainingSubscription?: Subscription;
+
+  // Add testing observables
+  private readonly testingStatusSubject = new BehaviorSubject<{ isRunning: boolean, message?: string }>({ isRunning: false });
+  private readonly testStatsSubject = new BehaviorSubject<{
+    totalSteps: number,
+    success: boolean,
+    reward: number,
+    path: Position[]
+  } | null>(null);
 
   trainingStatus$ = this.trainingStatusSubject.asObservable();
   trainingStats$ = this.trainingStatsSubject.asObservable();
   agentMoved$ = this.agentMovedSubject.asObservable();
+  testingStatus$ = this.testingStatusSubject.asObservable();
+  testStats$ = this.testStatsSubject.asObservable();
 
   private currentConfig: TrainingConfig | null = null;
-  private currentNnConfig: NeuralNetworkConfig | null = null;
   private currentAlgorithm: AlgorithmType | null = null;
   private currentEpisode = 0;
   private totalRewardsHistory: number[] = [];
   private successHistory: boolean[] = [];
+  private isPaused = false;
 
-  constructor(private ngZone: NgZone) {}
+  constructor(private readonly ngZone: NgZone) {}
 
   initializeEnvironment(maze: Maze): void {
     this.maze = maze;
@@ -66,12 +87,13 @@ export class AiService {
 
     this.currentAlgorithm = algorithm;
     this.currentConfig = config;
-    this.currentNnConfig = nnConfig;
+    this.currentNnConfig = nnConfig as NeuralNetworkConfigInternal;
     this.currentEpisode = 0;
     this.totalRewardsHistory = [];
     this.successHistory = [];
+    this.isPaused = false;
 
-    this.trainingStatusSubject.next({ isRunning: true });
+    this.trainingStatusSubject.next({ isRunning: true, isPaused: false });
 
     if (algorithm === AlgorithmType.DQN) {
       this.initializeDqnModel();
@@ -81,13 +103,29 @@ export class AiService {
     this.ngZone.runOutsideAngular(() => {
       this.trainingSubscription = interval(10) // Small delay for visualization updates
         .subscribe(() => {
-          if (this.currentEpisode < this.currentConfig!.episodes) {
+          if (!this.isPaused && this.currentEpisode < this.currentConfig!.episodes) {
             this.runEpisode();
-          } else {
+          } else if (!this.isPaused && this.currentEpisode >= this.currentConfig!.episodes) {
             this.stopTraining('Training completed: All episodes finished.');
           }
         });
     });
+  }
+
+  pauseTraining(): void {
+    if (this.trainingStatusSubject.value.isRunning) {
+      this.isPaused = true;
+      this.trainingStatusSubject.next({ isRunning: true, isPaused: true, message: 'Training paused' });
+      console.log('Training paused at episode', this.currentEpisode);
+    }
+  }
+
+  resumeTraining(): void {
+    if (this.trainingStatusSubject.value.isRunning && this.isPaused) {
+      this.isPaused = false;
+      this.trainingStatusSubject.next({ isRunning: true, isPaused: false, message: 'Training resumed' });
+      console.log('Training resumed from episode', this.currentEpisode);
+    }
   }
 
   private initializeDqnModel(): void {
@@ -246,8 +284,6 @@ export class AiService {
     } else if (x === this.maze.end.x && y === this.maze.end.y) {
       reward = 100; // Reward for reaching the end
       done = true;
-    } else if (this.maze.grid[y][x].type === CellType.VISITED) {
-        // reward = -2; // Slightly higher penalty for re-visiting, could be an option
     }
 
     return { nextPosition: { x, y }, reward, done };
@@ -341,7 +377,7 @@ export class AiService {
         return { states: tf.tensor2d(states), targets: tf.tensor2d(targetQValuesData) };
     });
     
-    const history = await this.dqnModel.fit(batch.states, batch.targets, {
+    await this.dqnModel.fit(batch.states, batch.targets, {
         epochs: 1,
         verbose: 0
     });
@@ -355,11 +391,164 @@ export class AiService {
       this.trainingSubscription.unsubscribe();
       this.trainingSubscription = undefined;
     }
-    this.trainingStatusSubject.next({ isRunning: false, message: message || 'Training stopped by user.' });
-    console.log(message || 'AI Training Stopped');
+    this.isPaused = false;
+    this.trainingStatusSubject.next({ isRunning: false, isPaused: false, message: message ?? 'Training stopped by user.' });
+    console.log(message ?? 'AI Training Stopped');
   }
   
   getQTableArray(): {state: string, qValues: number[]}[] {
       return Object.entries(this.qTable).map(([state, qValues]) => ({state, qValues}));
   }
-} 
+
+  async testModel(maze?: Maze, maxSteps: number = 200): Promise<void> {
+    if (!this.currentAlgorithm) {
+      console.error('No trained model available');
+      this.testingStatusSubject.next({ isRunning: false, message: 'No trained model available' });
+      return;
+    }
+
+    const testMaze = maze || this.maze;
+    if (!testMaze) {
+      console.error('No maze available for testing');
+      this.testingStatusSubject.next({ isRunning: false, message: 'No maze available for testing' });
+      return;
+    }
+
+    this.testingStatusSubject.next({ isRunning: true, message: 'Testing model...' });
+    let currentPosition = { ...testMaze.start };
+    let totalReward = 0;
+    let steps = 0;
+    let path: Position[] = [currentPosition];
+    let success = false;
+
+    try {
+      while (steps < maxSteps) {
+        this.agentMovedSubject.next(currentPosition);
+        await new Promise(resolve => setTimeout(resolve, 100)); // Delay for visualization
+
+        const state = this.getCurrentState(currentPosition);
+        const action = this.chooseBestAction(state); // Use greedy policy for testing
+        const { nextPosition, reward, done } = this.takeAction(currentPosition, action);
+        
+        totalReward += reward;
+        currentPosition = nextPosition;
+        path.push(currentPosition);
+        steps++;
+
+        if (done) {
+          success = (currentPosition.x === testMaze.end.x && currentPosition.y === testMaze.end.y);
+          break;
+        }
+      }
+
+      this.testStatsSubject.next({
+        totalSteps: steps,
+        success,
+        reward: totalReward,
+        path
+      });
+
+      this.testingStatusSubject.next({ 
+        isRunning: false, 
+        message: success ? 'Test completed successfully!' : 'Test completed - goal not reached.'
+      });
+    } catch (error) {
+      console.error('Error during testing:', error);
+      this.testingStatusSubject.next({ isRunning: false, message: 'Error during testing.' });
+    }
+  }
+
+  private chooseBestAction(state: State): Action {
+    if (this.currentAlgorithm === AlgorithmType.QLEARNING) {
+      const stateKey = this.getStateKey(state);
+      const qValues = this.qTable[stateKey] || [0, 0, 0, 0];
+      return qValues.indexOf(Math.max(...qValues)) as Action;
+    } else if (this.currentAlgorithm === AlgorithmType.DQN && this.dqnModel) {
+      return tf.tidy(() => {
+        const stateInput = tf.tensor2d([this.getStateRepresentation(state.position)]);
+        const prediction = this.dqnModel!.predict(stateInput) as tf.Tensor;
+        const action = prediction.argMax(1).dataSync()[0];
+        return action as Action;
+      });
+    }
+    return Action.UP; // Default fallback
+  }
+
+  // Optional: Method to get the current training progress
+  getCurrentProgress(): number {
+    if (!this.currentConfig) return 0;
+    return (this.currentEpisode / this.currentConfig.episodes) * 100;
+  }
+
+  // Optional: Method to save the trained model
+  async saveModel(): Promise<void> {
+    if (this.currentAlgorithm === AlgorithmType.DQN && this.dqnModel) {
+      try {
+        await this.dqnModel.save('localstorage://maze-solver-dqn');
+        console.log('DQN model saved successfully');
+      } catch (error) {
+        console.error('Error saving DQN model:', error);
+      }
+    } else if (this.currentAlgorithm === AlgorithmType.QLEARNING) {
+      try {
+        localStorage.setItem('maze-solver-qtable', JSON.stringify(this.qTable));
+        console.log('Q-table saved successfully');
+      } catch (error) {
+        console.error('Error saving Q-table:', error);
+      }
+    }
+  }
+
+  // Optional: Method to load a saved model
+  async loadModel(): Promise<void> {
+    if (this.currentAlgorithm === AlgorithmType.DQN) {
+      try {
+        const loadedModel = await tf.loadLayersModel('localstorage://maze-solver-dqn');
+        if (loadedModel instanceof tf.Sequential) {
+          this.dqnModel = loadedModel;
+          
+          // Safely get input and output shapes
+          const inputShape = loadedModel.inputs[0].shape;
+          const outputShape = loadedModel.outputs[0].shape;
+          
+          if (!inputShape || !outputShape) {
+            throw new Error('Invalid model shapes');
+          }
+
+          // Create a new target model with the same architecture
+          this.targetDqnModel = this.createDqnModel(
+            inputShape[1] as number, // Get the feature dimension
+            outputShape[1] as number, // Get the number of actions
+            this.currentNnConfig || {
+              hiddenLayers: [128, 128],
+              activation: 'relu' as ActivationType,
+              optimizer: 'adam',
+              learningRate: 0.001,
+              batchSize: 32,
+              memorySize: 10000,
+              targetUpdateFrequency: 10
+            }
+          );
+          
+          // Copy weights from loaded model to target model
+          this.updateTargetModel();
+          console.log('DQN model loaded successfully');
+        } else {
+          throw new Error('Loaded model is not a Sequential model');
+        }
+      } catch (error) {
+        console.error('Error loading DQN model:', error);
+      }
+    } else if (this.currentAlgorithm === AlgorithmType.QLEARNING) {
+      try {
+        const savedQTable = localStorage.getItem('maze-solver-qtable');
+        if (savedQTable) {
+          this.qTable = JSON.parse(savedQTable);
+          console.log('Q-table loaded successfully');
+        }
+      } catch (error) {
+        console.error('Error loading Q-table:', error);
+      }
+    }
+  }
+}

@@ -106,10 +106,65 @@
               <mat-icon>play_arrow</mat-icon>
               Start Training
             </button>
+            <button mat-flat-button color="accent" (click)="pauseTraining()" [disabled]="!canPauseResume() || isPaused">
+              <mat-icon>pause</mat-icon>
+              Pause
+            </button>
+            <button mat-flat-button color="accent" (click)="resumeTraining()" [disabled]="!canPauseResume() || !isPaused">
+              <mat-icon>play_arrow</mat-icon>
+              Resume
+            </button>
             <button mat-flat-button color="warn" (click)="stopTraining()" [disabled]="!isRunning">
               <mat-icon>stop</mat-icon>
               Stop Training
             </button>
+          </div>
+          
+          <!-- Test Model Section -->
+          <div class="btn-group" style="margin-top: 16px;">
+            <button mat-flat-button color="primary" (click)="testModel()" 
+                    [disabled]="!canTestModel() || isTesting" 
+                    matTooltip="Test the current model on the maze">
+              <mat-icon>{{ isTesting ? 'hourglass_empty' : 'science' }}</mat-icon>
+              {{ isTesting ? 'Testing...' : 'Test Model' }}
+            </button>
+          </div>
+
+          <!-- Save/Load Model Section -->
+          <div class="btn-group" style="margin-top: 8px;">
+            <button mat-stroked-button (click)="saveModel()" 
+                    [disabled]="!canTestModel()" 
+                    matTooltip="Save the trained model">
+              <mat-icon>save</mat-icon>
+              Save Model
+            </button>
+            <button mat-stroked-button (click)="loadModel()" 
+                    [disabled]="isRunning" 
+                    matTooltip="Load a previously saved model">
+              <mat-icon>upload</mat-icon>
+              Load Model
+            </button>
+          </div>
+
+          <!-- Training Status -->
+          <div class="training-status" *ngIf="isRunning">
+            <mat-icon color="primary" *ngIf="!isPaused">play_circle_filled</mat-icon>
+            <mat-icon color="accent" *ngIf="isPaused">pause_circle_filled</mat-icon>
+            <span>{{ isPaused ? 'Training Paused' : 'Training Active' }}</span>
+            <mat-progress-bar mode="determinate" 
+                             [value]="getTrainingProgress()" 
+                             style="margin-top: 8px;">
+            </mat-progress-bar>
+          </div>
+
+          <!-- Test Results -->
+          <div class="test-results" *ngIf="testStats">
+            <div class="result-message">
+              {{ getTestResultMessage() }}
+            </div>
+            <div class="test-details">
+              <small>Path length: {{ testStats.path?.length || 'N/A' }} positions</small>
+            </div>
           </div>
         </mat-card-content>
       </mat-card>
