@@ -699,3 +699,195 @@
     color: #fff;
   }
 }
+
+/* Visualization Settings */
+.visualization-settings {
+  margin-top: 16px;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  gap: 8px;
+}
+
+.setting-group {
+  margin-bottom: 16px;
+}
+
+.setting-label {
+  display: block;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.speed-slider {
+  width: 100%;
+}
+
+.info-icon {
+  font-size: 18px;
+  color: var(--text-tertiary);
+  cursor: help;
+}
+
+.performance-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background-color: rgba(76, 175, 80, 0.1);
+  border-radius: 8px;
+  border-left: 4px solid #4CAF50;
+  margin-top: 12px;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.performance-info mat-icon {
+  color: #4CAF50;
+}
+
+/* Visualization Settings Panel */
+.visualization-settings-card {
+  margin-bottom: 16px;
+}
+
+.viz-settings-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+.viz-setting-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.viz-setting-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+}
+
+.viz-speed-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.viz-speed-slider {
+  width: 100%;
+}
+
+.speed-label {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.viz-toggle-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.viz-disabled-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: var(--overlay-bg);
+  padding: 20px;
+  border-radius: 8px;
+  text-align: center;
+  color: var(--text-secondary);
+  backdrop-filter: blur(5px);
+}
+
+.viz-disabled-overlay mat-icon {
+  font-size: 36px;
+  width: 36px;
+  height: 36px;
+  opacity: 0.6;
+}
+
+.viz-disabled-overlay small {
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+/* Enhanced maze cell visualization */
+.maze-cell.agent-path {
+  background-color: rgba(33, 150, 243, 0.4) !important;
+  border: 1px solid #2196F3;
+  animation: pathGlow 2s ease-in-out infinite alternate;
+}
+
+.maze-cell.explored {
+  background-color: rgba(255, 193, 7, 0.2) !important;
+  border: 1px solid rgba(255, 193, 7, 0.5);
+}
+
+.maze-cell.current.agent-path {
+  box-shadow: 0 0 15px #2196F3, 0 0 25px rgba(33, 150, 243, 0.5);
+}
+
+@keyframes pathGlow {
+  0% { 
+    box-shadow: 0 0 5px rgba(33, 150, 243, 0.5);
+    opacity: 0.7;
+  }
+  100% { 
+    box-shadow: 0 0 10px rgba(33, 150, 243, 0.8);
+    opacity: 1;
+  }
+}
+
+/* Performance optimizations for high-speed training */
+.maze-container.performance-mode .maze-cell {
+  transition: none;
+  animation: none;
+}
+
+.maze-container.performance-mode .maze-cell.visited {
+  animation: none;
+  background-color: rgba(33, 150, 243, 0.2);
+}
+
+/* Visualization status indicators */
+.viz-status-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.viz-status-indicator.enabled {
+  background-color: rgba(76, 175, 80, 0.2);
+  color: #4CAF50;
+}
+
+.viz-status-indicator.disabled {
+  background-color: rgba(244, 67, 54, 0.2);
+  color: #f44336;
+}
+
+.viz-status-indicator mat-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
+}

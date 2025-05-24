@@ -10,7 +10,8 @@ import {
   TrainingConfig, 
   TrainingStats, 
   NeuralNetworkConfig, 
-  Experience 
+  Experience,
+  VisualizationSettings
 } from '../models/ai.model';
 
 interface QTable {
@@ -62,6 +63,33 @@ export class AiService {
   private totalRewardsHistory: number[] = [];
   private successHistory: boolean[] = [];
   private isPaused = false;
+
+  // Enhanced visualization properties
+  private readonly agentPathHistory: Position[] = [];
+  private readonly exploredCells: Set<string> = new Set();
+  private visualizationSettings: VisualizationSettings = {
+    enabled: true,
+    speed: 50,
+    showPath: true,
+    showExplorationHeatmap: true,
+    showAgentTrail: true,
+    performanceMode: false,
+    adaptiveQuality: true,
+    maxHistorySize: 100
+  };
+  private lastVisualizationUpdate = 0;
+  private readonly visitedCells: Map<string, number> = new Map();
+  private readonly explorationHeatmap: Map<string, number> = new Map();
+  private visualizationHistory: { position: Position, timestamp: number }[] = [];
+
+  // Performance optimization variables
+  private lastStatsUpdate = 0;
+  private readonly STATS_UPDATE_INTERVAL = 250; // Update stats max every 250ms
+  private visualizationSpeed = 50; // Configurable visualization speed (1-100)
+  private enableOptimizedVisualization = true;
+  private frameSkipCount = 0;
+  private lastVisualizationUpdateTime = 0;
+  private readonly VISUALIZATION_UPDATE_INTERVAL = 100; // Update viz max every 100ms
 
   constructor(private readonly ngZone: NgZone) {}
 
@@ -167,8 +195,19 @@ export class AiService {
     let steps = 0;
     let episodeSuccess = false;
 
+    // Clear visualization history for new episode if enabled
+    if (this.visualizationSettings.enabled && this.currentEpisode === 0) {
+      this.clearVisualizationHistory();
+    }
+
     for (steps = 0; steps < this.currentConfig.maxStepsPerEpisode; steps++) {
-      this.agentMovedSubject.next(currentPosition);
+      // Track agent movement for enhanced visualization
+      this.trackAgentMovement(currentPosition);
+      
+      // Only update visualization if settings allow and it's time to update
+      if (this.shouldUpdateVisualization()) {
+        this.agentMovedSubject.next(currentPosition);
+      }
       
       const state = this.getCurrentState(currentPosition);
       const action = this.chooseAction(state);
@@ -181,7 +220,9 @@ export class AiService {
         this.updateQTable(state, action, reward, nextState);
       } else if (this.currentAlgorithm === AlgorithmType.DQN) {
         this.storeExperience(state, action, reward, nextState, done);
-        this.trainDqnModel();
+        if (steps % 4 === 0) { // Train every 4 steps for efficiency
+          this.trainDqnModel();
+        }
       }
 
       currentPosition = nextPosition;
@@ -192,31 +233,41 @@ export class AiService {
       }
     }
     
-    this.agentMovedSubject.next(currentPosition); // Final position
+    // Final position update
+    this.trackAgentMovement(currentPosition);
+    if (this.visualizationSettings.enabled) {
+      this.agentMovedSubject.next(currentPosition);
+    }
 
-    // Decay exploration rate for Q-Learning
+    // Update exploration rate for Q-Learning
     if (this.currentAlgorithm === AlgorithmType.QLEARNING && this.currentConfig.explorationRate > this.currentConfig.minExplorationRate) {
       this.currentConfig.explorationRate *= this.currentConfig.explorationDecay;
     }
-    // For DQN, exploration decay might be handled differently or be part of a more complex strategy
 
     this.totalRewardsHistory.push(totalReward);
     this.successHistory.push(episodeSuccess);
     this.currentEpisode++;
 
-    const stats: TrainingStats = {
-      episode: this.currentEpisode,
-      totalReward,
-      steps,
-      explorationRate: this.currentConfig.explorationRate, 
-      success: episodeSuccess,
-      averageReward: this.totalRewardsHistory.reduce((a, b) => a + b, 0) / this.totalRewardsHistory.length,
-      successRate: (this.successHistory.filter(s => s).length / this.successHistory.length) * 100
-    };
-    this.trainingStatsSubject.next(stats);
+    // Throttled stats updates for performance
+    const shouldUpdateStats = this.currentEpisode % Math.max(1, Math.floor(this.currentConfig.episodes / 100)) === 0 || 
+                             this.currentEpisode === this.currentConfig.episodes;
+    
+    if (shouldUpdateStats) {
+      const stats: TrainingStats = {
+        episode: this.currentEpisode,
+        totalReward,
+        steps,
+        explorationRate: this.currentConfig.explorationRate, 
+        success: episodeSuccess,
+        averageReward: this.totalRewardsHistory.reduce((a, b) => a + b, 0) / this.totalRewardsHistory.length,
+        successRate: (this.successHistory.filter(s => s).length / this.successHistory.length) * 100
+      };
+      this.trainingStatsSubject.next(stats);
+    }
 
+    // Update target model periodically for DQN
     if (this.currentAlgorithm === AlgorithmType.DQN && this.currentNnConfig && this.currentEpisode % this.currentNnConfig.targetUpdateFrequency === 0) {
-        this.updateTargetModel();
+      this.updateTargetModel();
     }
   }
 
@@ -550,5 +601,72 @@ export class AiService {
         console.error('Error loading Q-table:', error);
       }
     }
+  }
+
+  // Enhanced visualization methods
+  private trackAgentMovement(position: Position): void {
+    if (!this.visualizationSettings.enabled) return;
+    
+    const key = `${position.x},${position.y}`;
+    this.visitedCells.set(key, (this.visitedCells.get(key) ?? 0) + 1);
+    
+    // Update exploration heatmap
+    if (this.visualizationSettings.showExplorationHeatmap) {
+      this.explorationHeatmap.set(key, Date.now());
+    }
+  }
+
+  private shouldUpdateVisualization(): boolean {
+    if (!this.visualizationSettings.enabled) return false;
+    
+    const now = Date.now();
+    const timeSinceLastUpdate = now - this.lastVisualizationUpdate;
+    const requiredInterval = this.getVisualizationInterval();
+    
+    return timeSinceLastUpdate >= requiredInterval;
+  }
+
+  private getVisualizationInterval(): number {
+    // Calculate update interval based on speed and performance mode
+    const baseInterval = this.visualizationSettings.performanceMode ? 200 : 50;
+    const speedMultiplier = (100 - this.visualizationSettings.speed) / 100;
+    return Math.max(16, baseInterval * speedMultiplier); // Minimum 16ms (60fps)
+  }
+
+  private clearVisualizationHistory(): void {
+    this.visitedCells.clear();
+    this.explorationHeatmap.clear();
+    this.visualizationHistory = [];
+  }
+
+  setVisualizationSettings(settings: VisualizationSettings): void {
+    this.visualizationSettings = { ...this.visualizationSettings, ...settings };
+    
+    // Clear history if switching modes
+    if (!settings.enabled) {
+      this.clearVisualizationHistory();
+    }
+    
+    console.log('Visualization settings updated:', this.visualizationSettings);
+  }
+
+  setVisualizationSpeed(speed: number): void {
+    this.visualizationSpeed = Math.max(1, Math.min(100, speed));
+    this.visualizationSettings.speed = this.visualizationSpeed;
+    console.log('Visualization speed set to:', this.visualizationSpeed);
+  }
+
+  setOptimizedVisualization(enabled: boolean): void {
+    this.enableOptimizedVisualization = enabled;
+    this.visualizationSettings.performanceMode = !enabled;
+    console.log('Optimized visualization:', enabled ? 'enabled' : 'disabled');
+  }
+
+  getVisualizationData(): any {
+    return {
+      visitedCells: Array.from(this.visitedCells.entries()),
+      explorationHeatmap: Array.from(this.explorationHeatmap.entries()),
+      settings: this.visualizationSettings
+    };
   }
 }

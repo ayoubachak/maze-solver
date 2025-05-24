@@ -91,4 +91,22 @@ export interface NetworkVisualization {
   connections: Connection[];
   currentInput: number[];
   currentOutput: number[];
-} 
+}
+
+export interface VisualizationSettings {
+  enabled: boolean;
+  speed: number; // 1-100
+  showPath: boolean;
+  showExplorationHeatmap: boolean;
+  showAgentTrail: boolean;
+  performanceMode: boolean;
+  adaptiveQuality: boolean;
+  maxHistorySize: number;
+}
+
+export interface VisualizationData {
+  visitedCells: Map<string, number>;
+  explorationHeatmap: Map<string, number>;
+  agentTrail: Position[];
+  currentPosition: Position | null;
+}
