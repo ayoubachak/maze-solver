@@ -1,6 +1,41 @@
 /* You can add global styles to this file, and also import other style files */
 @import '@angular/material/prebuilt-themes/azure-blue.css';
 
+/* CSS Custom Properties for Theme Management */
+:root {
+  /* Light theme colors */
+  --bg-primary: #f5f5f5;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #fafafa;
+  --text-primary: #333333;
+  --text-secondary: #666666;
+  --text-tertiary: #999999;
+  --border-color: #e0e0e0;
+  --border-light: rgba(0, 0, 0, 0.1);
+  --accent-bg: #f8f9fa;
+  --overlay-bg: rgba(255, 255, 255, 0.9);
+  --shadow-color: rgba(0, 0, 0, 0.1);
+  --hero-bg: rgba(255, 255, 255, 0.1);
+  --card-bg: #ffffff;
+}
+
+.dark-theme {
+  /* Dark theme colors */
+  --bg-primary: #121212;
+  --bg-secondary: #1e1e1e;
+  --bg-tertiary: #2d2d2d;
+  --text-primary: #ffffff;
+  --text-secondary: #b3b3b3;
+  --text-tertiary: #808080;
+  --border-color: #404040;
+  --border-light: rgba(255, 255, 255, 0.1);
+  --accent-bg: #2a2a2a;
+  --overlay-bg: rgba(30, 30, 30, 0.9);
+  --shadow-color: rgba(0, 0, 0, 0.3);
+  --hero-bg: rgba(255, 255, 255, 0.05);
+  --card-bg: #1e1e1e;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -11,7 +46,9 @@ body {
   font-family: 'Roboto', sans-serif;
   margin: 0;
   padding: 0;
-  background: #f5f5f5;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 html, body {
@@ -25,18 +62,19 @@ html, body {
 }
 
 .card {
-  background: white;
+  background: var(--card-bg);
   border-radius: 12px;
   padding: 24px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px var(--shadow-color);
   margin-bottom: 20px;
+  color: var(--text-primary);
 }
 
 .section-title {
   font-size: 1.8rem;
   font-weight: 600;
   margin-bottom: 16px;
-  color: #333;
+  color: var(--text-primary);
 }
 
 .btn-group {
@@ -62,5 +100,190 @@ html, body {
 @keyframes pulse {
   0% { transform: scale(1); }
   50% { transform: scale(1.05); }
-  100% { transform: scale(1); }
+}
+
+/* Material Design overrides for dark theme */
+.dark-theme .mat-mdc-card {
+  background-color: var(--bg-secondary) !important;
+  color: var(--text-primary) !important;
+}
+
+.dark-theme .mat-mdc-form-field {
+  color: var(--text-primary) !important;
+}
+
+.dark-theme .mat-mdc-form-field .mat-mdc-form-field-input-control {
+  color: var(--text-primary) !important;
+}
+
+.dark-theme .mat-mdc-form-field .mat-mdc-floating-label {
+  color: var(--text-secondary) !important;
+}
+
+.dark-theme .mat-mdc-form-field.mat-focused .mat-mdc-floating-label {
+  color: #2196F3 !important;
+}
+
+.dark-theme .mat-mdc-select-value {
+  color: var(--text-primary) !important;
+}
+
+.dark-theme .mat-mdc-input-element {
+  color: var(--text-primary) !important;
+}
+
+.dark-theme .mat-mdc-checkbox .mdc-form-field {
+  color: var(--text-primary) !important;
+}
+
+.dark-theme .mat-mdc-slider {
+  --mdc-slider-inactive-track-color: var(--border-color);
+  --mdc-slider-active-track-color: #2196F3;
+}
+
+/* Fix disabled button styling in dark mode */
+.dark-theme .mat-mdc-button:disabled,
+.dark-theme .mat-mdc-raised-button:disabled,
+.dark-theme .mat-mdc-stroked-button:disabled,
+.dark-theme .mat-mdc-flat-button:disabled {
+  background-color: var(--bg-tertiary) !important;
+  color: var(--text-tertiary) !important;
+  opacity: 0.8 !important;
+  border: 1px solid var(--border-color) !important;
+}
+
+.dark-theme .mat-mdc-button:disabled .mat-mdc-button-touch-target,
+.dark-theme .mat-mdc-raised-button:disabled .mat-mdc-button-touch-target,
+.dark-theme .mat-mdc-stroked-button:disabled .mat-mdc-button-touch-target,
+.dark-theme .mat-mdc-flat-button:disabled .mat-mdc-button-touch-target {
+  background-color: transparent !important;
+}
+
+/* More specific targeting for flat buttons when disabled in dark mode */
+.dark-theme .mat-mdc-flat-button:disabled,
+.dark-theme .mat-mdc-flat-button:disabled:hover,
+.dark-theme .mat-mdc-flat-button:disabled:focus {
+  background-color: var(--bg-tertiary) !important;
+  color: var(--text-tertiary) !important;
+  opacity: 0.9 !important;
+  border: 1px solid var(--border-color) !important;
+  box-shadow: none !important;
+}
+
+/* Target the actual button content for flat buttons */
+.dark-theme .mat-mdc-flat-button:disabled .mdc-button__label {
+  color: var(--text-tertiary) !important;
+  opacity: 1 !important;
+}
+
+/* Specific styling for stroked buttons when disabled in dark mode */
+.dark-theme .mat-mdc-stroked-button:disabled {
+  background-color: transparent !important;
+  color: var(--text-tertiary) !important;
+  border: 1px solid var(--border-color) !important;
+  opacity: 0.8 !important;
+}
+
+/* Ensure disabled button text and icons are visible */
+.dark-theme .mat-mdc-button:disabled .mat-icon,
+.dark-theme .mat-mdc-raised-button:disabled .mat-icon,
+.dark-theme .mat-mdc-stroked-button:disabled .mat-icon,
+.dark-theme .mat-mdc-flat-button:disabled .mat-icon {
+  color: var(--text-tertiary) !important;
+  opacity: 1 !important;
+}
+
+/* Force visibility for all disabled button elements in dark mode */
+.dark-theme .mat-mdc-flat-button[disabled],
+.dark-theme .mat-mdc-flat-button:disabled {
+  background-color: var(--bg-tertiary) !important;
+  color: var(--text-tertiary) !important;
+  opacity: 0.9 !important;
+  visibility: visible !important;
+  display: flex !important;
+  border: 1px solid var(--border-color) !important;
+}
+
+/* Override any Material Design internal disabled styling */
+.dark-theme .mat-mdc-flat-button:disabled .mdc-button__ripple,
+.dark-theme .mat-mdc-flat-button[disabled] .mdc-button__ripple {
+  display: none !important;
+}
+
+/* Fix disabled form field styling in dark mode */
+.dark-theme .mat-mdc-form-field.mat-form-field-disabled .mat-mdc-floating-label {
+  color: var(--text-tertiary) !important;
+}
+
+.dark-theme .mat-mdc-form-field.mat-form-field-disabled .mat-mdc-form-field-input-control {
+  color: var(--text-tertiary) !important;
+  opacity: 0.7;
+}
+
+.dark-theme .mat-mdc-form-field.mat-form-field-disabled .mat-mdc-text-field-wrapper {
+  background-color: var(--accent-bg) !important;
+  opacity: 0.7;
+}
+
+/* Fix select dropdown styling in dark mode */
+.dark-theme .mat-mdc-select.mat-mdc-select-disabled {
+  color: var(--text-tertiary) !important;
+}
+
+.dark-theme .mat-mdc-select.mat-mdc-select-disabled .mat-mdc-select-arrow {
+  color: var(--text-tertiary) !important;
+}
+
+/* Fix input styling in dark mode */
+.dark-theme .mat-mdc-input-element::placeholder {
+  color: var(--text-tertiary) !important;
+}
+
+.dark-theme .mat-mdc-input-element:disabled {
+  color: var(--text-tertiary) !important;
+}
+
+/* Fix checkbox styling in dark mode */
+.dark-theme .mat-mdc-checkbox.mat-mdc-checkbox-disabled .mdc-form-field {
+  color: var(--text-tertiary) !important;
+}
+
+/* Fix slider styling in dark mode */
+.dark-theme .mat-mdc-slider.mat-mdc-slider-disabled {
+  opacity: 0.6;
+}
+
+/* Fix tooltip styling in dark mode */
+.dark-theme .mat-mdc-tooltip {
+  background-color: var(--bg-tertiary) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Ensure proper contrast for text in dark mode */
+.dark-theme .mat-mdc-card-title,
+.dark-theme .mat-mdc-card-subtitle,
+.dark-theme .mat-mdc-card-content {
+  color: var(--text-primary) !important;
+}
+
+.dark-theme .mat-mdc-progress-bar {
+  --mdc-linear-progress-track-color: var(--border-color);
+}
+
+/* Fix Material Design outline colors in dark mode */
+.dark-theme .mat-mdc-form-field.mat-form-field-appearance-outline .mat-mdc-notched-outline .mat-mdc-notched-outline-leading,
+.dark-theme .mat-mdc-form-field.mat-form-field-appearance-outline .mat-mdc-notched-outline .mat-mdc-notched-outline-notch,
+.dark-theme .mat-mdc-form-field.mat-form-field-appearance-outline .mat-mdc-notched-outline .mat-mdc-notched-outline-trailing {
+  border-color: var(--border-color) !important;
+}
+
+.dark-theme .mat-mdc-form-field.mat-form-field-appearance-outline.mat-focused .mat-mdc-notched-outline .mat-mdc-notched-outline-leading,
+.dark-theme .mat-mdc-form-field.mat-form-field-appearance-outline.mat-focused .mat-mdc-notched-outline .mat-mdc-notched-outline-notch,
+.dark-theme .mat-mdc-form-field.mat-form-field-appearance-outline.mat-focused .mat-mdc-notched-outline .mat-mdc-notched-outline-trailing {
+  border-color: #2196F3 !important;
+}
+
+/* Smooth transitions for theme changes */
+* {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }

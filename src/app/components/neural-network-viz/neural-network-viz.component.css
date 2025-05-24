@@ -15,12 +15,12 @@
   align-items: center;
   justify-content: center;
   gap: 12px;
-  color: white;
+  color: var(--text-primary);
   margin-bottom: 8px;
 }
 
 .subtitle {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--text-secondary);
   font-size: 1.1rem;
   margin: 0;
 }
@@ -36,9 +36,9 @@
   position: relative;
   width: 100%;
   min-height: 500px; /* Ensure space for SVG */
-  background-color: #f8f9fa;
+  background-color: var(--accent-bg);
   border-radius: 8px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid var(--border-color);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -60,10 +60,10 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  background-color: rgba(255, 255, 255, 0.9);
+  background-color: var(--overlay-bg);
   text-align: center;
   padding: 20px;
-  color: #777;
+  color: var(--text-secondary);
 }
 
 .status-icon {
@@ -88,13 +88,14 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  color: var(--text-primary);
 }
 
 .color-box {
   width: 15px;
   height: 15px;
   border-radius: 3px;
-  border: 1px solid #ccc;
+  border: 1px solid var(--border-color);
 }
 .color-box.input { background-color: #a1d99b; } /* Light green */
 .color-box.hidden { background-color: #fdd0a2; } /* Light orange */
@@ -107,4 +108,4 @@
     border-radius: 1px;
 }
 .line-positive { background-color: #2196F3; }
-.line-negative { background-color: #FF6B6B; } 
+.line-negative { background-color: #FF6B6B; }
