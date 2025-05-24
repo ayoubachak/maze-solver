@@ -200,6 +200,9 @@ export class AiService {
       this.clearVisualizationHistory();
     }
 
+    // Clear visited cells tracking for each episode to improve exploration reward
+    this.visitedCells.clear();
+
     for (steps = 0; steps < this.currentConfig.maxStepsPerEpisode; steps++) {
       // Track agent movement for enhanced visualization
       this.trackAgentMovement(currentPosition);
@@ -220,7 +223,7 @@ export class AiService {
         this.updateQTable(state, action, reward, nextState);
       } else if (this.currentAlgorithm === AlgorithmType.DQN) {
         this.storeExperience(state, action, reward, nextState, done);
-        if (steps % 4 === 0) { // Train every 4 steps for efficiency
+        if (this.replayMemory.length >= this.currentNnConfig!.batchSize && steps % 4 === 0) {
           this.trainDqnModel();
         }
       }
@@ -239,8 +242,13 @@ export class AiService {
       this.agentMovedSubject.next(currentPosition);
     }
 
-    // Update exploration rate for Q-Learning
-    if (this.currentAlgorithm === AlgorithmType.QLEARNING && this.currentConfig.explorationRate > this.currentConfig.minExplorationRate) {
+    // Enhanced exploration rate decay for DQN
+    if (this.currentAlgorithm === AlgorithmType.DQN) {
+      // Use exponential decay with minimum exploration rate
+      const decayRate = 0.995;
+      const minExploration = 0.05;
+      this.currentConfig.explorationRate = Math.max(minExploration, this.currentConfig.explorationRate * decayRate);
+    } else if (this.currentAlgorithm === AlgorithmType.QLEARNING && this.currentConfig.explorationRate > this.currentConfig.minExplorationRate) {
       this.currentConfig.explorationRate *= this.currentConfig.explorationDecay;
     }
 
@@ -317,6 +325,7 @@ export class AiService {
   private takeAction(currentPosition: Position, action: Action): { nextPosition: Position, reward: number, done: boolean } {
     if (!this.maze) throw new Error("Maze not available for takeAction");
     let { x, y } = currentPosition;
+    const originalDistance = Math.abs(currentPosition.x - this.maze.end.x) + Math.abs(currentPosition.y - this.maze.end.y);
 
     switch (action) {
       case Action.UP:    y--; break;
@@ -325,16 +334,37 @@ export class AiService {
       case Action.RIGHT: x++; break;
     }
 
-    let reward = -1; // Small penalty for each step
+    let reward = -0.04; // Smaller step penalty to encourage exploration
     let done = false;
 
     if (this.isWall(x, y)) {
-      reward = -10; // Penalty for hitting a wall
+      reward = -0.5; // Reduced wall penalty 
       x = currentPosition.x; // Stay in place
       y = currentPosition.y;
-    } else if (x === this.maze.end.x && y === this.maze.end.y) {
-      reward = 100; // Reward for reaching the end
-      done = true;
+    } else {
+      // Calculate new distance to goal
+      const newDistance = Math.abs(x - this.maze.end.x) + Math.abs(y - this.maze.end.y);
+      
+      if (x === this.maze.end.x && y === this.maze.end.y) {
+        reward = 10.0; // Large reward for reaching goal
+        done = true;
+      } else {
+        // Reward for getting closer to goal, penalty for moving away
+        const distanceReward = (originalDistance - newDistance) * 0.1;
+        reward += distanceReward;
+        
+        // Additional small reward for exploration (visiting new cells)
+        const cellKey = `${x},${y}`;
+        if (!this.visitedCells.has(cellKey)) {
+          reward += 0.02; // Small exploration bonus
+        }
+        
+        // Penalty for staying in the same place too long
+        const visitCount = this.visitedCells.get(cellKey) ?? 0;
+        if (visitCount > 3) {
+          reward -= 0.01 * visitCount; // Increasing penalty for revisiting
+        }
+      }
     }
 
     return { nextPosition: { x, y }, reward, done };
@@ -366,16 +396,63 @@ export class AiService {
   // DQN Specific Methods
   private getStateRepresentation(position: Position): number[] {
     if (!this.maze) return [];
-    // Flattened grid representation (normalized) or more sophisticated features
-    // For simplicity, using agent's (x,y) and (dist_x, dist_y) to goal, and wall booleans
+    
     const stateArray: number[] = [];
+    
+    // 1. Current position (normalized)
     stateArray.push(position.x / this.maze.width);
     stateArray.push(position.y / this.maze.height);
-    stateArray.push((this.maze.end.x - position.x) / this.maze.width);
-    stateArray.push((this.maze.end.y - position.y) / this.maze.height);
     
-    const s = this.getCurrentState(position);
-    s.walls.forEach(wall => stateArray.push(wall ? 1 : 0));
+    // 2. Distance to goal (normalized)
+    const distanceX = (this.maze.end.x - position.x) / this.maze.width;
+    const distanceY = (this.maze.end.y - position.y) / this.maze.height;
+    stateArray.push(distanceX);
+    stateArray.push(distanceY);
+    
+    // 3. Manhattan distance to goal (normalized)
+    const manhattanDistance = (Math.abs(this.maze.end.x - position.x) + Math.abs(this.maze.end.y - position.y)) / (this.maze.width + this.maze.height);
+    stateArray.push(manhattanDistance);
+    
+    // 4. Immediate surroundings (3x3 grid around agent)
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        if (dx === 0 && dy === 0) continue; // Skip current position
+        const x = position.x + dx;
+        const y = position.y + dy;
+        stateArray.push(this.isWall(x, y) ? 1 : 0);
+      }
+    }
+    
+    // 5. Direction to goal (unit vector)
+    const goalDist = Math.sqrt(distanceX * distanceX + distanceY * distanceY);
+    if (goalDist > 0) {
+      stateArray.push(distanceX / goalDist); // Normalized direction X
+      stateArray.push(distanceY / goalDist); // Normalized direction Y
+    } else {
+      stateArray.push(0);
+      stateArray.push(0);
+    }
+    
+    // 6. Visibility in four directions (how far can we see)
+    const directions = [
+      { dx: 0, dy: -1 }, // Up
+      { dx: 0, dy: 1 },  // Down
+      { dx: -1, dy: 0 }, // Left
+      { dx: 1, dy: 0 }   // Right
+    ];
+    
+    directions.forEach(dir => {
+      let distance = 0;
+      let x = position.x + dir.dx;
+      let y = position.y + dir.dy;
+      
+      while (!this.isWall(x, y) && distance < 10) {
+        distance++;
+        x += dir.dx;
+        y += dir.dy;
+      }
+      stateArray.push(distance / 10); // Normalized visibility distance
+    });
     
     return stateArray;
   }

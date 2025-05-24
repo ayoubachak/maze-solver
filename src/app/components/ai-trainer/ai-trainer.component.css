@@ -664,42 +664,6 @@
   }
 }
 
-/* Animation classes */
-.fade-in {
-  animation: fadeIn 0.5s ease-in;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* Accessibility improvements */
-@media (prefers-reduced-motion: reduce) {
-  .maze-cell, .fade-in, .maze-cell.visited {
-    animation: none;
-    transition: none;
-  }
-}
-
-/* High contrast mode support */
-@media (prefers-contrast: high) {
-  .maze-cell.wall { 
-    background-color: #000; 
-    border-color: #fff;
-  }
-  
-  .maze-cell.start { 
-    background-color: #00ff00; 
-    color: #000;
-  }
-  
-  .maze-cell.end { 
-    background-color: #ff0000; 
-    color: #fff;
-  }
-}
-
 /* Visualization Settings */
 .visualization-settings {
   margin-top: 16px;
@@ -752,142 +716,258 @@
   color: #4CAF50;
 }
 
-/* Visualization Settings Panel */
+/* Visualization Settings Card - New mobile-friendly location */
 .visualization-settings-card {
-  margin-bottom: 16px;
+  margin-top: 16px;
 }
 
-.viz-settings-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 16px;
-}
-
-.viz-setting-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.viz-setting-row {
+.visualization-settings-card .mat-mdc-card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 0;
+  padding-bottom: 8px;
 }
 
-.viz-speed-container {
+.collapse-button {
+  margin-left: auto;
+}
+
+.viz-controls-grid {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-}
-
-.viz-speed-slider {
-  width: 100%;
-}
-
-.speed-label {
-  font-size: 0.9rem;
-  color: var(--text-secondary);
-  text-align: center;
-}
-
-.viz-toggle-group {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
 
-.viz-disabled-overlay {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+.viz-control-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 40px;
+}
+
+.control-main {
   display: flex;
   flex-direction: column;
+  flex: 1;
+  gap: 8px;
+}
+
+.control-label {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+}
+
+.compact-slider {
+  width: 100%;
+  max-width: 200px;
+}
+
+.viz-options-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 8px 0;
+}
+
+.compact-checkbox {
+  font-size: 0.9rem;
+}
+
+.performance-info-compact {
+  display: flex;
   align-items: center;
   gap: 8px;
-  background: var(--overlay-bg);
-  padding: 20px;
+  padding: 8px 12px;
+  background-color: rgba(76, 175, 80, 0.1);
   border-radius: 8px;
-  text-align: center;
+  color: var(--primary-color);
+  font-size: 0.9rem;
+}
+
+.performance-info-compact mat-icon {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
+}
+
+.info-icon {
+  font-size: 16px;
+  width: 16px;
+  height: 16px;
   color: var(--text-secondary);
-  backdrop-filter: blur(5px);
+  opacity: 0.7;
+  cursor: help;
 }
 
-.viz-disabled-overlay mat-icon {
-  font-size: 36px;
-  width: 36px;
-  height: 36px;
-  opacity: 0.6;
-}
-
-.viz-disabled-overlay small {
-  font-size: 0.8rem;
-  opacity: 0.8;
-}
-
-/* Enhanced maze cell visualization */
-.maze-cell.agent-path {
-  background-color: rgba(33, 150, 243, 0.4) !important;
-  border: 1px solid #2196F3;
-  animation: pathGlow 2s ease-in-out infinite alternate;
-}
-
-.maze-cell.explored {
-  background-color: rgba(255, 193, 7, 0.2) !important;
-  border: 1px solid rgba(255, 193, 7, 0.5);
-}
-
-.maze-cell.current.agent-path {
-  box-shadow: 0 0 15px #2196F3, 0 0 25px rgba(33, 150, 243, 0.5);
-}
-
-@keyframes pathGlow {
-  0% { 
-    box-shadow: 0 0 5px rgba(33, 150, 243, 0.5);
-    opacity: 0.7;
+/* Mobile responsiveness improvements */
+@media (max-width: 768px) {
+  .trainer-layout {
+    flex-direction: column;
+    gap: 16px;
   }
-  100% { 
-    box-shadow: 0 0 10px rgba(33, 150, 243, 0.8);
+  
+  .controls-panel,
+  .maze-panel,
+  .visualization-panel {
+    width: 100%;
+  }
+  
+  .visualization-settings-card {
+    order: -1; /* Move visualization controls above stats on mobile */
+    margin-top: 0;
+    margin-bottom: 16px;
+  }
+  
+  .viz-options-row {
+    justify-content: space-between;
+  }
+  
+  .compact-checkbox {
+    font-size: 0.8rem;
+  }
+  
+  .viz-control-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  
+  .control-main {
+    align-items: stretch;
+  }
+  
+  .compact-slider {
+    max-width: 100%;
+  }
+}
+
+/* Animation for collapsible panel */
+@keyframes expandCollapse {
+  from {
+    max-height: 0;
+    opacity: 0;
+  }
+  to {
+    max-height: 300px;
     opacity: 1;
   }
 }
 
-/* Performance optimizations for high-speed training */
-.maze-container.performance-mode .maze-cell {
-  transition: none;
-  animation: none;
+.mat-mdc-card-content[data-expanded="true"] {
+  animation: expandCollapse 0.3s ease-out;
 }
 
-.maze-container.performance-mode .maze-cell.visited {
-  animation: none;
-  background-color: rgba(33, 150, 243, 0.2);
+.mat-mdc-card-content[data-expanded="false"] {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  padding: 0 16px;
 }
 
-/* Visualization status indicators */
-.viz-status-indicator {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 0.8rem;
-  font-weight: 500;
+/* Enhanced maze cell states for better visualization */
+.maze-cell.agent-path {
+  background-color: rgba(33, 150, 243, 0.3) !important;
+  border: 2px solid rgba(33, 150, 243, 0.6);
+  animation: pathPulse 1.5s ease-in-out infinite alternate;
 }
 
-.viz-status-indicator.enabled {
-  background-color: rgba(76, 175, 80, 0.2);
-  color: #4CAF50;
+.maze-cell.explored {
+  background-color: rgba(255, 193, 7, 0.2) !important;
+  border: 1px solid rgba(255, 193, 7, 0.4);
 }
 
-.viz-status-indicator.disabled {
-  background-color: rgba(244, 67, 54, 0.2);
-  color: #f44336;
+.maze-cell.current.agent-path {
+  box-shadow: 0 0 12px rgba(33, 150, 243, 0.8);
+  animation: currentAgentGlow 1s ease-in-out infinite alternate;
 }
 
-.viz-status-indicator mat-icon {
-  font-size: 16px;
-  width: 16px;
-  height: 16px;
+@keyframes pathPulse {
+  0% { 
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  100% { 
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes currentAgentGlow {
+  0% { 
+    box-shadow: 0 0 8px rgba(33, 150, 243, 0.6);
+  }
+  100% { 
+    box-shadow: 0 0 16px rgba(33, 150, 243, 1);
+  }
+}
+
+/* Performance mode optimizations */
+.maze-container[data-performance="true"] .maze-cell {
+  transition: none !important;
+  animation: none !important;
+}
+
+.maze-container[data-performance="true"] .maze-cell.agent-path {
+  animation: none !important;
+  background-color: rgba(33, 150, 243, 0.2) !important;
+}
+
+/* Responsive maze grid improvements */
+@media (max-width: 480px) {
+  .maze-grid {
+    max-width: 100vw;
+    overflow: auto;
+  }
+  
+  .maze-cell {
+    min-width: 8px;
+    min-height: 8px;
+    font-size: 6px;
+  }
+  
+  .viz-controls-grid {
+    gap: 8px;
+  }
+  
+  .viz-options-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+
+/* Animation classes */
+.fade-in {
+  animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+  .maze-cell, .fade-in, .maze-cell.visited {
+    animation: none;
+    transition: none;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .maze-cell.wall { 
+    background-color: #000; 
+    border-color: #fff;
+  }
+  
+  .maze-cell.start { 
+    background-color: #00ff00; 
+    color: #000;
+  }
+  
+  .maze-cell.end { 
+    background-color: #ff0000; 
+    color: #fff;
+  }
 }

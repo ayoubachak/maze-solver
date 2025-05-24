@@ -230,78 +230,6 @@
           </div>
         </mat-card-content>
       </mat-card>
-
-      <!-- Visualization Settings Card -->
-      <mat-card class="control-card visualization-settings">
-        <mat-card-header>
-          <mat-card-title>
-            <mat-icon>visibility</mat-icon>
-            Visualization Settings
-          </mat-card-title>
-        </mat-card-header>
-        <mat-card-content>
-          <!-- Master Toggle -->
-          <div class="setting-row">
-            <mat-checkbox [(ngModel)]="visualizationEnabled" 
-                          (change)="toggleVisualization()"
-                          [disabled]="false">
-              Enable Visualization
-            </mat-checkbox>
-            <mat-icon matTooltip="Disable to accelerate training" class="info-icon">info_outline</mat-icon>
-          </div>
-
-          <!-- Speed Control -->
-          <div class="setting-group" *ngIf="visualizationEnabled">
-            <label class="setting-label">
-              Visualization Speed: {{ getVisualizationSpeedLabel() }} ({{ visualizationSpeed }}%)
-            </label>
-            <mat-slider class="speed-slider" 
-                        [min]="1" 
-                        [max]="100" 
-                        [step]="5"
-                        [disabled]="!visualizationEnabled"
-                        (input)="onVisualizationSpeedChange($event)">
-              <input matSliderThumb [value]="visualizationSpeed">
-            </mat-slider>
-          </div>
-
-          <!-- Real-time Updates -->
-          <div class="setting-row" *ngIf="visualizationEnabled">
-            <mat-checkbox [(ngModel)]="enableRealTimeViz" 
-                          (change)="toggleRealTimeVisualization()"
-                          [disabled]="!visualizationEnabled">
-              Real-time Updates
-            </mat-checkbox>
-            <mat-icon matTooltip="Show agent movement in real-time" class="info-icon">info_outline</mat-icon>
-          </div>
-
-          <!-- Agent Path Tracking -->
-          <div class="setting-row" *ngIf="visualizationEnabled">
-            <mat-checkbox [(ngModel)]="showAgentPath" 
-                          (change)="toggleAgentPath()"
-                          [disabled]="!visualizationEnabled">
-              Show Agent Path
-            </mat-checkbox>
-            <mat-icon matTooltip="Highlight the agent's movement trail" class="info-icon">info_outline</mat-icon>
-          </div>
-
-          <!-- Explored Cells -->
-          <div class="setting-row" *ngIf="visualizationEnabled">
-            <mat-checkbox [(ngModel)]="showExploredCells" 
-                          (change)="toggleExploredCells()"
-                          [disabled]="!visualizationEnabled">
-              Show Explored Areas
-            </mat-checkbox>
-            <mat-icon matTooltip="Highlight cells the agent has visited" class="info-icon">info_outline</mat-icon>
-          </div>
-
-          <!-- Performance Info -->
-          <div class="performance-info" *ngIf="!visualizationEnabled">
-            <mat-icon color="primary">speed</mat-icon>
-            <span>Performance Mode: Training will run faster without visualization</span>
-          </div>
-        </mat-card-content>
-      </mat-card>
     </div>
 
     <!-- Center Panel: Maze Visualization -->
@@ -348,6 +276,77 @@
           <div *ngIf="!maze" class="maze-placeholder">
             <mat-icon>info_outline</mat-icon>
             <p>Generate a maze to begin training.</p>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- Visualization Settings Card - Moved here for better accessibility -->
+      <mat-card class="visualization-settings-card">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon>visibility</mat-icon>
+            Visualization Controls
+          </mat-card-title>
+          <button mat-icon-button (click)="toggleVisualizationPanel()" class="collapse-button">
+            <mat-icon>{{ showVisualizationPanel ? 'expand_less' : 'expand_more' }}</mat-icon>
+          </button>
+        </mat-card-header>
+        <mat-card-content [@expandCollapse]="showVisualizationPanel ? 'expanded' : 'collapsed'">
+          <!-- Compact view for mobile -->
+          <div class="viz-controls-grid">
+            <!-- Master Toggle -->
+            <div class="viz-control-row">
+              <div class="control-main">
+                <mat-checkbox [(ngModel)]="visualizationEnabled" 
+                              (change)="toggleVisualization()">
+                  Enable Visualization
+                </mat-checkbox>
+              </div>
+              <mat-icon matTooltip="Disable to accelerate training" class="info-icon">info_outline</mat-icon>
+            </div>
+
+            <!-- Speed Control -->
+            <div class="viz-control-row" *ngIf="visualizationEnabled">
+              <div class="control-main">
+                <label class="control-label">Speed: {{ getVisualizationSpeedLabel() }}</label>
+                <mat-slider class="compact-slider" 
+                            [min]="1" 
+                            [max]="100" 
+                            [step]="10"
+                            [disabled]="!visualizationEnabled"
+                            (input)="onVisualizationSpeedChange($event)">
+                  <input matSliderThumb [value]="visualizationSpeed">
+                </mat-slider>
+              </div>
+            </div>
+
+            <!-- Visualization Options -->
+            <div class="viz-options-row" *ngIf="visualizationEnabled">
+              <mat-checkbox [(ngModel)]="enableRealTimeViz" 
+                            (change)="toggleRealTimeVisualization()"
+                            [disabled]="!visualizationEnabled"
+                            class="compact-checkbox">
+                Real-time
+              </mat-checkbox>
+              <mat-checkbox [(ngModel)]="showAgentPath" 
+                            (change)="toggleAgentPath()"
+                            [disabled]="!visualizationEnabled"
+                            class="compact-checkbox">
+                Agent Trail
+              </mat-checkbox>
+              <mat-checkbox [(ngModel)]="showExploredCells" 
+                            (change)="toggleExploredCells()"
+                            [disabled]="!visualizationEnabled"
+                            class="compact-checkbox">
+                Explored
+              </mat-checkbox>
+            </div>
+
+            <!-- Performance Info -->
+            <div class="performance-info-compact" *ngIf="!visualizationEnabled">
+              <mat-icon>speed</mat-icon>
+              <span>Performance Mode Active</span>
+            </div>
           </div>
         </mat-card-content>
       </mat-card>

@@ -66,6 +66,7 @@ export class AiTrainerComponent implements OnInit, OnDestroy, AfterViewInit {
   showExploredCells = true;
   enableRealTimeViz = true;
   maxPathLength = 100; // Limit path history for performance
+  showVisualizationPanel = true; // New property for collapsible panel
   
   // Agent tracking
   agentPath: { x: number, y: number }[] = [];
@@ -99,14 +100,15 @@ export class AiTrainerComponent implements OnInit, OnDestroy, AfterViewInit {
     maxStepsPerEpisode: 200
   };
 
+  // Enhanced DQN configuration with better defaults
   dqnConfig: NeuralNetworkConfig = {
-    hiddenLayers: [128, 128],
+    hiddenLayers: [256, 256, 128],
     activation: 'relu',
     optimizer: 'adam',
-    learningRate: 0.001,
-    batchSize: 32,
-    memorySize: 10000,
-    targetUpdateFrequency: 10
+    learningRate: 0.0005,
+    batchSize: 64,
+    memorySize: 50000,
+    targetUpdateFrequency: 100
   };
   
   // Maze settings
@@ -559,6 +561,10 @@ export class AiTrainerComponent implements OnInit, OnDestroy, AfterViewInit {
     if (!this.showExploredCells) {
       this.exploredCells.clear();
     }
+  }
+
+  toggleVisualizationPanel(): void {
+    this.showVisualizationPanel = !this.showVisualizationPanel;
   }
 
   private updateAgentVisualization(position: { x: number, y: number }): void {
