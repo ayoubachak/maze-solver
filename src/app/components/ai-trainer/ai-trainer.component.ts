@@ -229,12 +229,33 @@ export class AiTrainerComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   private subscribeToAlgorithmStats(): void {
+    // Clear any existing algorithm-specific subscriptions
+    // (Keep only the main service subscriptions from ngOnInit)
+    
     // Subscribe to current algorithm's NEAT stats
     if (this.currentAlgorithm.algorithmType === AlgorithmType.NEAT) {
       this.subscriptions.push(
         this.currentAlgorithm.neatStats$.subscribe(stats => {
           this.ngZone.run(() => {
             console.log('NEAT Stats received from algorithm:', stats); // Debug log
+            this.neatStats = stats;
+            if (stats) {
+              this.currentAlgorithm.updateVisualizationInsights();
+              // Update NEAT network visualization if enabled and stats are available
+              if (this.showNetworkViz && stats.generation > 0) {
+                this.createNEATNetworkVisualization();
+              }
+            }
+            this.cdr.detectChanges();
+          });
+        })
+      );
+      
+      // Also subscribe directly to the AI service NEAT stats to ensure we get updates
+      this.subscriptions.push(
+        this.aiService.neatStats$.subscribe(stats => {
+          this.ngZone.run(() => {
+            console.log('NEAT Stats received directly from AI service:', stats); // Debug log
             this.neatStats = stats;
             if (stats) {
               this.currentAlgorithm.updateVisualizationInsights();

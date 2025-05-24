@@ -34,6 +34,7 @@ export class NEATAlgorithm extends BaseAlgorithm implements OnDestroy {
     super();
     // Subscribe to AI service NEAT stats and pass them through to our own subject
     this.neatStatsSubscription = this.aiService.neatStats$.subscribe(stats => {
+      console.log('NEAT Algorithm received stats from AI service:', stats); // Debug log
       this.neatStatsSubject.next(stats);
       if (stats) {
         this.updateVisualizationInsights();

@@ -236,7 +236,7 @@ export class AiService {
     
     // Add a small delay to ensure initialization is complete
     setTimeout(async () => {
-      while (!this.isPaused && this.neatConfig && this.neatGeneration < maxGenerations) {
+      while (this.trainingStatusSubject.value.isRunning && !this.isPaused && this.neatConfig && this.neatGeneration < maxGenerations) {
         console.log(`Running NEAT generation ${this.neatGeneration + 1}/${maxGenerations}`);
         
         // Update status with current generation
@@ -250,6 +250,12 @@ export class AiService {
         
         try {
           await this.runNEATGeneration();
+          
+          // Check if training was stopped externally
+          if (!this.trainingStatusSubject.value.isRunning) {
+            console.log('NEAT training was stopped externally');
+            return;
+          }
           
           // Check for early termination conditions
           if (this.neatStagnationCounter >= (this.neatConfig.maxStagnation || this.NEAT_MAX_STAGNATION)) {
@@ -274,7 +280,7 @@ export class AiService {
       }
       
       // If we exit the loop naturally, training is complete
-      if (!this.isPaused && this.neatConfig && this.neatGeneration >= maxGenerations) {
+      if (this.trainingStatusSubject.value.isRunning && this.neatConfig && this.neatGeneration >= maxGenerations) {
         this.stopTraining(`NEAT training completed: All ${maxGenerations} generations finished. Best fitness: ${this.neatBestFitness.toFixed(2)}`);
       }
     }, 100); // Small delay to ensure everything is initialized
@@ -880,18 +886,16 @@ export class AiService {
   private initializeNEAT(): void {
     console.log('Initializing NEAT algorithm...');
     
-    // Update status to show initialization in progress
-    this.trainingStatusSubject.next({ 
-      isRunning: true, 
-      isPaused: false, 
-      message: 'Initializing NEAT population...' 
-    });
-    
-    // Initialize population
+    // Initialize population first
     this.initializeNEATPopulation();
     
-    // Publish initial stats immediately after initialization
+    // Publish initial stats immediately and synchronously
     const initialStats = this.getNEATStats();
+    console.log('Publishing initial NEAT stats:', initialStats);
+    
+    // Publish stats both inside and outside ngZone to ensure they get through
+    this.neatStatsSubject.next(initialStats);
+    
     this.ngZone.run(() => {
       this.neatStatsSubject.next(initialStats);
       this.trainingStatsSubject.next({
@@ -904,15 +908,16 @@ export class AiService {
         successRate: 0
       });
       
-      // Update status to show initialization complete and training starting
+      // Update status to show initialization complete
       this.trainingStatusSubject.next({ 
         isRunning: true, 
         isPaused: false, 
-        message: 'NEAT population initialized. Starting evolution...' 
+        message: `NEAT population initialized with ${this.neatPopulation.length} genomes. Starting evolution...` 
       });
     });
     
     console.log(`NEAT initialized with ${this.neatPopulation.length} genomes in ${this.neatSpecies.length} species`);
+    console.log('Initial NEAT stats published:', this.neatStatsSubject.value);
   }
 
   private initializeNEATPopulation(): void {
