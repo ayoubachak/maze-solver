@@ -1,0 +1,219 @@
+<div class="maze-solver-container">
+  <!-- Header -->
+  <div class="header fade-in">
+    <h1 class="section-title">
+      <mat-icon>extension</mat-icon>
+      Maze Solver
+    </h1>
+    <p class="subtitle">
+      Watch classic pathfinding algorithms solve mazes step by step
+    </p>
+  </div>
+
+  <!-- Controls Section -->
+  <div class="controls-section">
+    <!-- Algorithm Selection -->
+    <mat-card class="control-card">
+      <mat-card-header>
+        <mat-card-title>Algorithm Selection</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Choose Algorithm</mat-label>
+          <mat-select [(value)]="selectedAlgorithm" [disabled]="isRunning">
+            <mat-option *ngFor="let algorithm of algorithms" [value]="algorithm.value">
+              {{ algorithm.name }}
+            </mat-option>
+          </mat-select>
+        </mat-form-field>
+        
+        <div class="algorithm-description" *ngIf="getAlgorithmDescription()">
+          <mat-icon color="accent">info</mat-icon>
+          <span>{{ getAlgorithmDescription() }}</span>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Maze Controls -->
+    <mat-card class="control-card">
+      <mat-card-header>
+        <mat-card-title>Maze Controls</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="btn-group">
+          <button 
+            mat-raised-button 
+            color="primary" 
+            (click)="generateSimpleMaze()"
+            [disabled]="isRunning"
+            matTooltip="Generate a simple random maze"
+          >
+            <mat-icon>shuffle</mat-icon>
+            Simple Maze
+          </button>
+          
+          <button 
+            mat-raised-button 
+            color="accent" 
+            (click)="generateMaze()"
+            [disabled]="isRunning"
+            matTooltip="Generate a complex maze using recursive backtracking"
+          >
+            <mat-icon>account_tree</mat-icon>
+            Complex Maze
+          </button>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Algorithm Controls -->
+    <mat-card class="control-card">
+      <mat-card-header>
+        <mat-card-title>Algorithm Controls</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="btn-group">
+          <button 
+            mat-raised-button 
+            color="primary" 
+            (click)="solveMaze()"
+            [disabled]="isRunning || !maze"
+          >
+            <mat-icon>play_arrow</mat-icon>
+            Start Solving
+          </button>
+          
+          <button 
+            mat-raised-button 
+            color="warn" 
+            (click)="stopSolving()"
+            [disabled]="!isRunning"
+          >
+            <mat-icon>stop</mat-icon>
+            Stop
+          </button>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Settings -->
+    <mat-card class="control-card">
+      <mat-card-header>
+        <mat-card-title>Settings</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="setting-group">
+          <label>Speed</label>
+          <mat-slider 
+            [min]="1" 
+            [max]="100" 
+            [step]="1"
+            [displayWith]="getSpeedValue"
+            (input)="onSpeedChange($event)"
+            [disabled]="isRunning"
+            class="speed-slider"
+          >
+            <input matSliderThumb [value]="getSpeedValue()">
+          </mat-slider>
+          <span class="speed-label">{{ getSpeedValue() }}%</span>
+        </div>
+
+        <div class="checkbox-group">
+          <mat-checkbox 
+            [(ngModel)]="config.showVisited"
+            [disabled]="isRunning"
+          >
+            Show Visited Cells
+          </mat-checkbox>
+          
+          <mat-checkbox 
+            [(ngModel)]="config.diagonalMovement"
+            [disabled]="isRunning"
+          >
+            Allow Diagonal Movement
+          </mat-checkbox>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Status Bar -->
+  <div class="status-bar" *ngIf="algorithmStep || isRunning">
+    <mat-card class="status-card">
+      <div class="status-content">
+        <div class="status-text">
+          <mat-icon *ngIf="isRunning" class="running-icon pulse">hourglass_empty</mat-icon>
+          <mat-icon *ngIf="!isRunning && algorithmStep?.completed" color="primary">check_circle</mat-icon>
+          <span>{{ algorithmStep?.message || 'Ready to solve...' }}</span>
+        </div>
+        <mat-progress-bar 
+          *ngIf="isRunning" 
+          mode="indeterminate" 
+          color="accent">
+        </mat-progress-bar>
+      </div>
+    </mat-card>
+  </div>
+
+  <!-- Maze Visualization -->
+  <div class="maze-section">
+    <mat-card class="maze-card">
+      <mat-card-header>
+        <mat-card-title>Maze Visualization</mat-card-title>
+        <mat-card-subtitle>
+          Click cells to toggle walls • Green = Start • Red = End
+        </mat-card-subtitle>
+      </mat-card-header>
+      
+      <mat-card-content>
+        <div class="maze-container" *ngIf="maze">
+          <div class="maze-grid">
+            <div 
+              *ngFor="let row of maze.grid; let y = index" 
+              class="maze-row"
+            >
+              <div 
+                *ngFor="let cell of row; let x = index"
+                [class]="getCellClass(cell)"
+                (click)="onCellClick(x, y)"
+                [matTooltip]="cell.type === CellType.START ? 'Start' : 
+                            cell.type === CellType.END ? 'End' : 
+                            cell.type === CellType.WALL ? 'Wall' :
+                            cell.type === CellType.PATH ? 'Path' :
+                            cell.type === CellType.VISITED ? 'Visited' : 'Empty'"
+              >
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="maze-legend">
+          <div class="legend-item">
+            <div class="legend-cell start"></div>
+            <span>Start</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-cell end"></div>
+            <span>End</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-cell wall"></div>
+            <span>Wall</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-cell visited"></div>
+            <span>Visited</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-cell path"></div>
+            <span>Path</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-cell empty"></div>
+            <span>Empty</span>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div> 

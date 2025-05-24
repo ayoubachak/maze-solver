@@ -1,0 +1,39 @@
+<div class="nn-viz-container">
+  <!-- Header -->
+  <div class="header fade-in">
+    <h1 class="section-title">
+      <mat-icon>device_hub</mat-icon>
+      Neural Network Visualizer
+    </h1>
+    <p class="subtitle">
+      Peek inside the brain of the DQN agent and see how it makes decisions.
+    </p>
+  </div>
+
+  <mat-card class="viz-card">
+    <mat-card-header>
+      <mat-card-title>Network Structure & Activity</mat-card-title>
+      <div class="header-actions">
+        <button mat-icon-button (click)="refreshVisualization()" matTooltip="Refresh Visualization">
+            <mat-icon>refresh</mat-icon>
+        </button>
+      </div>
+    </mat-card-header>
+    <mat-card-content>
+      <div class="visualization-area">
+        <svg #networkSvg class="network-svg"></svg>
+        <div *ngIf="!isDqnActive || !networkData" class="status-overlay">
+            <mat-icon class="status-icon">info_outline</mat-icon>
+            <p>{{ statusMessage }}</p>
+        </div>
+      </div>
+      <div class="legend">
+        <span class="legend-item"><span class="color-box input"></span> Input Neurons</span>
+        <span class="legend-item"><span class="color-box hidden"></span> Hidden Neurons</span>
+        <span class="legend-item"><span class="color-box output"></span> Output Neurons</span>
+        <span class="legend-item"><span class="line-positive"></span> Positive Weight</span>
+        <span class="legend-item"><span class="line-negative"></span> Negative Weight</span>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div> 

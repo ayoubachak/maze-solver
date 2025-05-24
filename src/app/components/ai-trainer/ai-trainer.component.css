@@ -1,0 +1,230 @@
+.ai-trainer-container {
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* Header */
+.header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: white;
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+/* Layout */
+.trainer-layout {
+  display: grid;
+  grid-template-columns: 3fr 4fr 3fr; /* Controls | Maze | Stats */
+  gap: 20px;
+}
+
+.controls-panel, .maze-panel, .stats-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Controls Panel */
+.control-card, .config-card, .maze-display-card, .stats-card {
+  width: 100%;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.top-margin {
+    margin-top: 16px;
+}
+
+.algorithm-description {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px;
+  background: #f5f5f5;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.config-tabs ::ng-deep .mat-tab-body-content {
+  padding: 0;
+}
+
+.config-tabs ::ng-deep .mat-tab-label {
+  min-width: 0!important; 
+  padding: 0 16px!important;
+  font-weight: 500;
+}
+
+.config-card mat-card-content {
+  padding-top: 16px;
+}
+
+.action-buttons .btn-group {
+    justify-content: space-around;
+}
+
+/* Maze Panel */
+.maze-display-card .mat-card-header {
+  text-align: center;
+  display: block;
+}
+
+.maze-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #f0f0f0;
+  padding: 10px;
+  border-radius: 8px;
+  min-height: 250px;
+  overflow: auto;
+}
+
+.maze-grid {
+  border: 1px solid #ccc;
+  display: inline-block; /* To shrink-wrap content */
+}
+
+.maze-row {
+  display: flex;
+}
+
+.maze-cell {
+  width: 22px;
+  height: 22px;
+  border: 1px solid #e0e0e0;
+  transition: background-color 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.maze-cell.empty { background-color: #fff; }
+.maze-cell.wall { background-color: #333; }
+.maze-cell.start { background-color: #4CAF50; }
+.maze-cell.end { background-color: #f44336; }
+.maze-cell.current { 
+  background-color: #2196F3; 
+  border-radius: 50%;
+  transform: scale(0.8);
+  box-shadow: 0 0 8px #2196F3;
+}
+.maze-cell.path { background-color: #FFEB3B; } /* For potential path display */
+.maze-cell.visited { background-color: #CFD8DC; } /* For exploration visualization */
+
+.maze-placeholder {
+  text-align: center;
+  color: #999;
+  padding: 20px;
+}
+
+/* Stats Panel */
+.stats-card mat-progress-bar {
+  margin-bottom: 16px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.stat-item:last-child {
+  border-bottom: none;
+}
+
+.stat-label {
+  font-weight: 500;
+  color: #555;
+}
+
+.stat-value {
+  font-weight: bold;
+  color: #333;
+}
+
+.no-stats {
+  text-align: center;
+  color: #999;
+  padding: 20px 0;
+}
+
+.status-message {
+    justify-content: center;
+    gap: 8px;
+    color: #4CAF50;
+    font-weight: bold;
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .trainer-layout {
+    grid-template-columns: 1fr 1fr; /* Controls + Stats | Maze */
+  }
+  .controls-panel {
+    grid-row: 1;
+    grid-column: 1;
+  }
+  .stats-panel {
+    grid-row: 2;
+    grid-column: 1;
+  }
+  .maze-panel {
+    grid-row: 1 / span 2;
+    grid-column: 2;
+  }
+  .maze-cell {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+@media (max-width: 900px) {
+  .trainer-layout {
+    grid-template-columns: 1fr; /* Single column */
+  }
+  .maze-panel {
+    grid-row: auto;
+    grid-column: auto;
+  }
+  .maze-cell {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+@media (max-width: 600px) {
+    .maze-cell {
+        width: 15px;
+        height: 15px;
+    }
+    .section-title {
+        font-size: 1.5rem;
+    }
+} 

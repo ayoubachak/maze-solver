@@ -1,0 +1,86 @@
+<div class="home-container">
+  <!-- Hero Section -->
+  <section class="hero fade-in">
+    <div class="hero-content">
+      <h1 class="hero-title">
+        <mat-icon class="hero-icon">explore</mat-icon>
+        Maze Runner AI
+      </h1>
+      <p class="hero-subtitle">
+        Explore the fascinating world of pathfinding algorithms and artificial intelligence
+      </p>
+      <p class="hero-description">
+        Learn how classic algorithms solve mazes, train AI agents with reinforcement learning, 
+        and visualize neural networks in action. Perfect for students, educators, and AI enthusiasts!
+      </p>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section class="features">
+    <h2 class="section-title">Explore Features</h2>
+    <div class="features-grid">
+      <mat-card 
+        *ngFor="let feature of features" 
+        class="feature-card fade-in"
+        [style.border-top]="'4px solid ' + feature.color"
+      >
+        <mat-card-header>
+          <mat-icon 
+            mat-card-avatar 
+            [style.color]="feature.color"
+            class="feature-icon"
+          >
+            {{ feature.icon }}
+          </mat-icon>
+          <mat-card-title>{{ feature.title }}</mat-card-title>
+        </mat-card-header>
+        
+        <mat-card-content>
+          <p class="feature-description">{{ feature.description }}</p>
+        </mat-card-content>
+        
+        <mat-card-actions align="end">
+          <a 
+            mat-raised-button 
+            [routerLink]="feature.route"
+            [style.background-color]="feature.color"
+            color="primary"
+            class="feature-button"
+          >
+            Explore
+            <mat-icon>arrow_forward</mat-icon>
+          </a>
+        </mat-card-actions>
+      </mat-card>
+    </div>
+  </section>
+
+  <!-- Getting Started Section -->
+  <section class="getting-started card">
+    <h3 class="section-title">Getting Started</h3>
+    <div class="steps">
+      <div class="step">
+        <div class="step-number">1</div>
+        <div class="step-content">
+          <h4>Start with Maze Solver</h4>
+          <p>See how classic algorithms find the shortest path through mazes</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-number">2</div>
+        <div class="step-content">
+          <h4>Train an AI Agent</h4>
+          <p>Watch reinforcement learning in action as the AI learns to solve mazes</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-number">3</div>
+        <div class="step-content">
+          <h4>Visualize the Brain</h4>
+          <p>Peek inside the neural network to understand how AI makes decisions</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</div> 

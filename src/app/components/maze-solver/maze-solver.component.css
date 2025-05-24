@@ -1,0 +1,339 @@
+.maze-solver-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* Header */
+.header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: white;
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+/* Controls Section */
+.controls-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.control-card {
+  height: fit-content;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.algorithm-description {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 12px;
+  background: #f5f5f5;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  color: #666;
+}
+
+.btn-group {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.btn-group button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Settings */
+.setting-group {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.setting-group label {
+  font-weight: 500;
+  min-width: 60px;
+}
+
+.speed-slider {
+  flex: 1;
+  margin: 0 16px;
+}
+
+.speed-label {
+  font-weight: 500;
+  min-width: 40px;
+  text-align: right;
+}
+
+.checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Status Bar */
+.status-bar {
+  margin-bottom: 20px;
+}
+
+.status-card {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+}
+
+.status-content {
+  padding: 16px;
+}
+
+.status-text {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.running-icon {
+  color: #FFD700;
+}
+
+/* Maze Section */
+.maze-section {
+  display: flex;
+  justify-content: center;
+}
+
+.maze-card {
+  max-width: 100%;
+  overflow: visible;
+}
+
+.maze-container {
+  display: flex;
+  justify-content: center;
+  margin: 20px 0;
+}
+
+.maze-grid {
+  border: 2px solid #333;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.maze-row {
+  display: flex;
+}
+
+.maze-cell {
+  width: 20px;
+  height: 20px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.maze-cell:hover {
+  transform: scale(1.1);
+  z-index: 1;
+  position: relative;
+}
+
+/* Cell Types */
+.maze-cell.empty {
+  background-color: #ffffff;
+}
+
+.maze-cell.wall {
+  background-color: #333333;
+}
+
+.maze-cell.start {
+  background-color: #4CAF50;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+}
+
+.maze-cell.end {
+  background-color: #f44336;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.3);
+}
+
+.maze-cell.visited {
+  background-color: #E3F2FD;
+  animation: visitedAnimation 0.3s ease;
+}
+
+.maze-cell.path {
+  background-color: #FFD700;
+  animation: pathAnimation 0.5s ease;
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
+}
+
+.maze-cell.current {
+  background-color: #FF6B6B;
+  animation: pulse 1s infinite;
+}
+
+/* Animations */
+@keyframes visitedAnimation {
+  0% {
+    background-color: #ffffff;
+    transform: scale(1);
+  }
+  50% {
+    background-color: #2196F3;
+    transform: scale(1.2);
+  }
+  100% {
+    background-color: #E3F2FD;
+    transform: scale(1);
+  }
+}
+
+@keyframes pathAnimation {
+  0% {
+    background-color: #E3F2FD;
+    transform: scale(1);
+  }
+  50% {
+    background-color: #FFD700;
+    transform: scale(1.3);
+  }
+  100% {
+    background-color: #FFD700;
+    transform: scale(1);
+  }
+}
+
+/* Legend */
+.maze-legend {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 20px;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.legend-cell {
+  width: 16px;
+  height: 16px;
+  border: 1px solid #ccc;
+  border-radius: 2px;
+}
+
+.legend-cell.start {
+  background-color: #4CAF50;
+}
+
+.legend-cell.end {
+  background-color: #f44336;
+}
+
+.legend-cell.wall {
+  background-color: #333333;
+}
+
+.legend-cell.visited {
+  background-color: #E3F2FD;
+}
+
+.legend-cell.path {
+  background-color: #FFD700;
+}
+
+.legend-cell.empty {
+  background-color: #ffffff;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .maze-cell {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+@media (max-width: 768px) {
+  .maze-solver-container {
+    padding: 10px;
+  }
+  
+  .controls-section {
+    grid-template-columns: 1fr;
+  }
+  
+  .maze-cell {
+    width: 15px;
+    height: 15px;
+  }
+  
+  .btn-group {
+    flex-direction: column;
+  }
+  
+  .setting-group {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .speed-slider {
+    width: 100%;
+    margin: 8px 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .maze-cell {
+    width: 12px;
+    height: 12px;
+  }
+  
+  .section-title {
+    flex-direction: column;
+    font-size: 1.5rem;
+  }
+  
+  .maze-legend {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+} 

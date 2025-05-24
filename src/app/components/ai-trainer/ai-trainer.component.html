@@ -1,0 +1,219 @@
+<div class="ai-trainer-container">
+  <!-- Header -->
+  <div class="header fade-in">
+    <h1 class="section-title">
+      <mat-icon>school</mat-icon>
+      AI Trainer
+    </h1>
+    <p class="subtitle">
+      Train reinforcement learning agents to solve mazes using Q-Learning or Deep Q-Networks (DQN).
+    </p>
+  </div>
+
+  <!-- Main Layout: Controls | Maze | Stats -->
+  <div class="trainer-layout">
+    <!-- Left Panel: Controls & Config -->
+    <div class="controls-panel">
+      <mat-card class="control-card">
+        <mat-card-header>
+          <mat-card-title>Training Setup</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Choose AI Algorithm</mat-label>
+            <mat-select [(value)]="selectedAlgorithm" [disabled]="isRunning">
+              <mat-option *ngFor="let alg of algorithms" [value]="alg.value">
+                {{ alg.name }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+          <div class="algorithm-description" *ngIf="getAlgorithmDescription()">
+            <mat-icon color="accent">info</mat-icon>
+            <span>{{ getAlgorithmDescription() }}</span>
+          </div>
+
+          <div class="btn-group top-margin">
+            <button mat-raised-button color="primary" (click)="generateMaze()" [disabled]="isRunning">
+              <mat-icon>shuffle</mat-icon>
+              New Maze ({{mazeSize.width}}x{{mazeSize.height}})
+            </button>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-tab-group animationDuration="0ms" class="config-tabs">
+        <!-- Q-Learning Config -->
+        <mat-tab label="Q-Learning Settings" *ngIf="selectedAlgorithm === AlgorithmType.QLEARNING">
+          <mat-card class="config-card">
+            <mat-card-content>
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Learning Rate (α)</mat-label>
+                <input matInput type="number" [(ngModel)]="qLearningConfig.learningRate" [disabled]="isRunning" step="0.01" min="0" max="1">
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Discount Factor (γ)</mat-label>
+                <input matInput type="number" [(ngModel)]="qLearningConfig.discountFactor" [disabled]="isRunning" step="0.01" min="0" max="1">
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Exploration Rate (ε)</mat-label>
+                <input matInput type="number" [(ngModel)]="qLearningConfig.explorationRate" [disabled]="isRunning" step="0.01" min="0" max="1">
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Exploration Decay</mat-label>
+                <input matInput type="number" [(ngModel)]="qLearningConfig.explorationDecay" [disabled]="isRunning" step="0.001" min="0" max="1">
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Min Exploration Rate</mat-label>
+                <input matInput type="number" [(ngModel)]="qLearningConfig.minExplorationRate" [disabled]="isRunning" step="0.01" min="0" max="1">
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Episodes</mat-label>
+                <input matInput type="number" [(ngModel)]="qLearningConfig.episodes" [disabled]="isRunning" step="100" min="1">
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Max Steps per Episode</mat-label>
+                <input matInput type="number" [(ngModel)]="qLearningConfig.maxStepsPerEpisode" [disabled]="isRunning" step="10" min="1">
+              </mat-form-field>
+            </mat-card-content>
+          </mat-card>
+        </mat-tab>
+
+        <!-- DQN Config -->
+        <mat-tab label="DQN Settings" *ngIf="selectedAlgorithm === AlgorithmType.DQN">
+          <mat-card class="config-card">
+            <mat-card-content>
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Hidden Layers (comma-sep)</mat-label>
+                <input matInput type="text" [(ngModel)]="dqnConfig.hiddenLayers" [disabled]="isRunning" placeholder="e.g., 128,64">
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Activation Function</mat-label>
+                <mat-select [(ngModel)]="dqnConfig.activation" [disabled]="isRunning">
+                  <mat-option value="relu">ReLU</mat-option>
+                  <mat-option value="sigmoid">Sigmoid</mat-option>
+                  <mat-option value="tanh">Tanh</mat-option>
+                </mat-select>
+              </mat-form-field>
+               <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Optimizer</mat-label>
+                <mat-select [(ngModel)]="dqnConfig.optimizer" [disabled]="isRunning">
+                  <mat-option value="adam">Adam</mat-option>
+                  <mat-option value="sgd">SGD</mat-option>
+                  <mat-option value="rmsprop">RMSprop</mat-option>
+                </mat-select>
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Learning Rate</mat-label>
+                <input matInput type="number" [(ngModel)]="dqnConfig.learningRate" [disabled]="isRunning" step="0.0001" min="0">
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Batch Size</mat-label>
+                <input matInput type="number" [(ngModel)]="dqnConfig.batchSize" [disabled]="isRunning" step="1" min="1">
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Replay Memory Size</mat-label>
+                <input matInput type="number" [(ngModel)]="dqnConfig.memorySize" [disabled]="isRunning" step="100" min="1">
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Target Network Update Freq.</mat-label>
+                <input matInput type="number" [(ngModel)]="dqnConfig.targetUpdateFrequency" [disabled]="isRunning" step="1" min="1">
+              </mat-form-field>
+            </mat-card-content>
+          </mat-card>
+        </mat-tab>
+      </mat-tab-group>
+
+      <mat-card class="control-card action-buttons">
+        <mat-card-content>
+            <div class="btn-group">
+                <button mat-flat-button color="primary" (click)="startTraining()" [disabled]="isRunning || !maze">
+                    <mat-icon>play_arrow</mat-icon>
+                    Start Training
+                </button>
+                <button mat-flat-button color="warn" (click)="stopTraining()" [disabled]="!isRunning">
+                    <mat-icon>stop</mat-icon>
+                    Stop Training
+                </button>
+            </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- Center Panel: Maze Visualization -->
+    <div class="maze-panel">
+      <mat-card class="maze-display-card">
+        <mat-card-header>
+          <mat-card-title>Agent Environment</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="maze-container" *ngIf="maze">
+            <div class="maze-grid">
+              <div *ngFor="let row of maze.grid; let y = index" class="maze-row">
+                <div *ngFor="let cell of row; let x = index" 
+                     [class]="getCellClass(cell.type, x, y)"
+                     [matTooltip]="cell.type === CellType.START ? 'Start' : cell.type === CellType.END ? 'End' : cell.type === CellType.WALL ? 'Wall' : 'Empty'"
+                     >
+                </div>
+              </div>
+            </div>
+          </div>
+          <div *ngIf="!maze" class="maze-placeholder">
+            <p>Generate a maze to begin.</p>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- Right Panel: Training Stats -->
+    <div class="stats-panel">
+      <mat-card class="stats-card">
+        <mat-card-header>
+          <mat-card-title>Training Progress</mat-card-title>
+        </mat-card-header>
+        <mat-card-content *ngIf="trainingStats">
+          <mat-progress-bar 
+            mode="determinate" 
+            [value]="(trainingStats.episode / qLearningConfig.episodes) * 100"
+            *ngIf="isRunning || trainingStats.episode > 0">
+          </mat-progress-bar>
+          <div class="stats-grid">
+            <div class="stat-item">
+              <span class="stat-label">Episode:</span>
+              <span class="stat-value">{{ trainingStats.episode }} / {{ qLearningConfig.episodes }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Steps:</span>
+              <span class="stat-value">{{ trainingStats.steps }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Total Reward:</span>
+              <span class="stat-value">{{ trainingStats.totalReward.toFixed(2) }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Avg Reward (last 100):</span>
+              <span class="stat-value">{{ trainingStats.averageReward.toFixed(2) }}</span>
+            </div>
+             <div class="stat-item">
+              <span class="stat-label">Exploration Rate:</span>
+              <span class="stat-value">{{ trainingStats.explorationRate.toFixed(3) }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Success Rate (last 100):</span>
+              <span class="stat-value">{{ trainingStats.successRate.toFixed(2) }}%</span>
+            </div>
+            <div class="stat-item status-message" *ngIf="!isRunning && trainingStats.episode === qLearningConfig.episodes">
+                <mat-icon color="primary">check_circle</mat-icon> Training Complete!
+            </div>
+          </div>
+        </mat-card-content>
+        <mat-card-content *ngIf="!trainingStats && !isRunning">
+          <p class="no-stats">Start training to see progress.</p>
+        </mat-card-content>
+         <mat-card-content *ngIf="isRunning && !trainingStats">
+          <p class="no-stats">Initializing training...</p>
+          <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
+</div> 
