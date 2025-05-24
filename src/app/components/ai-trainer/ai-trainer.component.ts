@@ -18,7 +18,7 @@ import * as d3 from 'd3';
 import { AiService } from '../../services/ai.service';
 import { MazeService } from '../../services/maze.service';
 import { Maze, CellType, AlgorithmType } from '../../models/maze.model';
-import { TrainingConfig, NeuralNetworkConfig, TrainingStats, NetworkVisualization, NetworkLayer, Neuron, Connection } from '../../models/ai.model';
+import { TrainingConfig, NeuralNetworkConfig, TrainingStats, NetworkVisualization, NetworkLayer, Neuron, Connection, NEATConfig, NEATStats } from '../../models/ai.model';
 
 @Component({
   selector: 'app-ai-trainer',
@@ -49,6 +49,7 @@ export class AiTrainerComponent implements OnInit, OnDestroy, AfterViewInit {
   isPaused = false;
   isTesting = false;
   trainingStats: TrainingStats | null = null;
+  neatStats: NEATStats | null = null;
   testStats: any = null;
   currentAgentPosition: { x: number, y: number } | null = null;
 
@@ -112,6 +113,24 @@ export class AiTrainerComponent implements OnInit, OnDestroy, AfterViewInit {
     targetUpdateFrequency: 100
   };
   
+  // NEAT configuration with sensible defaults
+  neatConfig: NEATConfig = {
+    populationSize: 150,
+    maxStagnation: 15,
+    speciesThreshold: 3.0,
+    survivalRate: 0.2,
+    mutationRate: 0.8,
+    crossoverRate: 0.75,
+    maxStepsPerAgent: 200,
+    excessCoefficient: 1.0,
+    disjointCoefficient: 1.0,
+    weightCoefficient: 0.4,
+    addNodeMutationRate: 0.03,
+    addConnectionMutationRate: 0.05,
+    weightMutationRate: 0.8,
+    weightPerturbationRate: 0.9
+  };
+  
   // Maze settings
   showMazeSettings = false;
   
@@ -172,6 +191,15 @@ export class AiTrainerComponent implements OnInit, OnDestroy, AfterViewInit {
           } else {
             this.networkStatusMessage = 'Start DQN training to see neural network activity.';
           }
+        } else if (this.selectedAlgorithm === AlgorithmType.NEAT) {
+          if (status.isRunning) {
+            this.networkStatusMessage = 'NEAT networks are evolving...';
+            if (this.showNetworkViz && this.neatStats) {
+              this.createNEATNetworkVisualization(); // Create NEAT network visualization
+            }
+          } else {
+            this.networkStatusMessage = 'Start NEAT training to see evolved neural networks.';
+          }
         }
         
         this.cdr.detectChanges();
@@ -187,6 +215,14 @@ export class AiTrainerComponent implements OnInit, OnDestroy, AfterViewInit {
       this.aiService.testStats$.subscribe(stats => {
         this.ngZone.run(() => {
           this.testStats = stats;
+          this.cdr.detectChanges();
+        });
+      }),
+      // Subscribe to NEAT stats
+      this.aiService.neatStats$.subscribe(stats => {
+        this.ngZone.run(() => {
+          this.neatStats = stats;
+          this.updateVisualizationInsights();
           this.cdr.detectChanges();
         });
       })
@@ -217,7 +253,9 @@ export class AiTrainerComponent implements OnInit, OnDestroy, AfterViewInit {
     // Reset visualization state when starting new training
     this.resetVisualizationState();
     
-    this.aiService.startTraining(this.selectedAlgorithm, this.qLearningConfig, this.dqnConfig);
+    // Pass the appropriate config based on selected algorithm
+    const config = this.selectedAlgorithm === AlgorithmType.NEAT ? this.neatConfig : this.qLearningConfig;
+    this.aiService.startTraining(this.selectedAlgorithm, config, this.dqnConfig);
   }
 
   pauseTraining(): void {
@@ -531,6 +569,23 @@ export class AiTrainerComponent implements OnInit, OnDestroy, AfterViewInit {
         this.drawNetwork();
       }
     }
+    
+    // Update NEAT network visualization if active
+    if (this.selectedAlgorithm === AlgorithmType.NEAT && this.showNetworkViz && this.isRunning) {
+      // Update NEAT network visualization with evolving topology
+      if (this.neatStats && this.networkData) {
+        // Simulate evolution by updating neuron activations
+        this.networkData.layers.forEach(layer => {
+          layer.neurons.forEach(neuron => {
+            neuron.activation = Math.max(0, Math.min(1, neuron.activation + (Math.random() - 0.5) * 0.15));
+          });
+        });
+        this.drawNetwork();
+      } else if (this.neatStats) {
+        // Create new network visualization if needed
+        this.createNEATNetworkVisualization();
+      }
+    }
   }
 
   // Enhanced visualization methods
@@ -690,12 +745,113 @@ export class AiTrainerComponent implements OnInit, OnDestroy, AfterViewInit {
     // Update network visualization status based on new algorithm
     if (this.selectedAlgorithm === AlgorithmType.DQN) {
       this.networkStatusMessage = 'Start DQN training to see neural network activity.';
+    } else if (this.selectedAlgorithm === AlgorithmType.NEAT) {
+      this.networkStatusMessage = 'Start NEAT training to see evolved neural networks.';
     } else {
-      this.networkStatusMessage = 'Network visualization is only available for DQN algorithm.';
-      this.showNetworkViz = false; // Hide network viz for non-DQN algorithms
+      this.networkStatusMessage = 'Network visualization is only available for DQN and NEAT algorithms.';
+      this.showNetworkViz = false; // Hide network viz for Q-Learning
     }
     
     // Force change detection
     this.cdr.detectChanges();
+  }
+
+  private createNEATNetworkVisualization(): void {
+    if (!this.networkSvgRef || !this.neatStats) return;
+
+    // Create a simplified visualization of the best NEAT genome
+    // For now, create a sample network that represents the evolved topology
+    const inputLayer: NetworkLayer = {
+      type: 'input',
+      neurons: Array(4).fill(null).map((_, i) => ({ 
+        id: `i${i}`, 
+        value: Math.random(), 
+        bias: 0, 
+        activation: Math.random(), 
+        weights: [], 
+        connections: [] 
+      }))
+    };
+
+    // NEAT networks can have variable hidden layer structures
+    // For visualization, we'll create a representation based on the best genome
+    const hiddenNeurons = Math.min(Math.max(2, Math.floor(this.neatStats.generation / 5)), 6);
+    const hiddenLayer: NetworkLayer = {
+      type: 'hidden',
+      neurons: Array(hiddenNeurons).fill(null).map((_, i) => ({ 
+        id: `h${i}`, 
+        value: Math.random(), 
+        bias: Math.random() * 0.2 - 0.1, 
+        activation: Math.random(), 
+        weights: [], 
+        connections: [] 
+      }))
+    };
+
+    const outputLayer: NetworkLayer = {
+      type: 'output',
+      neurons: Array(4).fill(null).map((_, i) => ({ 
+        id: `o${i}`, 
+        value: Math.random(), 
+        bias: 0, 
+        activation: Math.random(), 
+        weights: [], 
+        connections: [] 
+      }))
+    };
+
+    const layers = [inputLayer, hiddenLayer, outputLayer];
+
+    // Create evolved connections (NEAT networks can have skip connections)
+    const connections: Connection[] = [];
+    
+    // Input to hidden connections
+    inputLayer.neurons.forEach(neuron1 => {
+      hiddenLayer.neurons.forEach(neuron2 => {
+        if (Math.random() > 0.3) { // Not all connections exist in NEAT
+          connections.push({ 
+            from: neuron1.id, 
+            to: neuron2.id, 
+            weight: (Math.random() - 0.5) * 3,
+            active: true
+          });
+        }
+      });
+    });
+
+    // Hidden to output connections
+    hiddenLayer.neurons.forEach(neuron1 => {
+      outputLayer.neurons.forEach(neuron2 => {
+        connections.push({ 
+          from: neuron1.id, 
+          to: neuron2.id, 
+          weight: (Math.random() - 0.5) * 2,
+          active: true
+        });
+      });
+    });
+
+    // Skip connections (input to output) - characteristic of NEAT
+    inputLayer.neurons.forEach(neuron1 => {
+      outputLayer.neurons.forEach(neuron2 => {
+        if (Math.random() > 0.7) { // Occasional skip connections
+          connections.push({ 
+            from: neuron1.id, 
+            to: neuron2.id, 
+            weight: (Math.random() - 0.5) * 1.5,
+            active: true
+          });
+        }
+      });
+    });
+    
+    this.networkData = {
+      layers,
+      connections,
+      currentInput: inputLayer.neurons.map(n => n.value),
+      currentOutput: outputLayer.neurons.map(n => n.value)
+    };
+    
+    this.drawNetwork();
   }
 }

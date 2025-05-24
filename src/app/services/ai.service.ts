@@ -136,8 +136,8 @@ export class AiService {
 
   startTraining(
     algorithm: AlgorithmType, 
-    config: TrainingConfig, 
-    nnConfig: NeuralNetworkConfig
+    config: TrainingConfig | NEATConfig, 
+    nnConfig?: NeuralNetworkConfig
   ): void {
     if (!this.maze) {
       console.error('Maze not initialized for AI training');
@@ -149,8 +149,15 @@ export class AiService {
     this.resetTrainingState();
 
     this.currentAlgorithm = algorithm;
-    this.currentConfig = config;
-    this.currentNnConfig = nnConfig as NeuralNetworkConfigInternal;
+    
+    if (algorithm === AlgorithmType.NEAT) {
+      this.neatConfig = config as NEATConfig;
+      this.currentConfig = null; // NEAT doesn't use TrainingConfig
+    } else {
+      this.currentConfig = config as TrainingConfig;
+      this.neatConfig = null;
+      this.currentNnConfig = nnConfig as NeuralNetworkConfigInternal;
+    }
     this.currentEpisode = 0;
     this.totalRewardsHistory = [];
     this.successHistory = [];
@@ -222,14 +229,15 @@ export class AiService {
   }
 
   private async runNEATTrainingLoop(): Promise<void> {
+    const maxGenerations = this.neatConfig?.populationSize || 100; // Use a sensible default for generations
     const runGeneration = async () => {
-      if (!this.isPaused && this.neatGeneration < this.currentConfig!.episodes) {
+      if (!this.isPaused && this.neatConfig && this.neatGeneration < maxGenerations) {
         console.log(`Running NEAT generation ${this.neatGeneration + 1}`);
         await this.runNEATGeneration();
         
         // Schedule next generation
         setTimeout(() => runGeneration(), 100);
-      } else if (!this.isPaused && this.neatGeneration >= this.currentConfig!.episodes) {
+      } else if (!this.isPaused && this.neatConfig && this.neatGeneration >= maxGenerations) {
         this.stopTraining('NEAT training completed: All generations finished.');
       }
     };
@@ -1150,6 +1158,7 @@ export class AiService {
 
     // Update stats
     const stats = this.getNEATStats();
+    this.neatStatsSubject.next(stats);
     this.trainingStatsSubject.next({
       episode: stats.generation,
       totalReward: stats.bestFitness,

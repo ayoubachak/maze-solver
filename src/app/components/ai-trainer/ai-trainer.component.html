@@ -108,7 +108,7 @@
         <mat-card-header>
           <mat-card-title>
             <mat-icon>tune</mat-icon>
-            {{ selectedAlgorithm === AlgorithmType.DQN ? 'DQN' : 'Q-Learning' }} Settings
+            {{ selectedAlgorithm === AlgorithmType.NEAT ? 'NEAT' : (selectedAlgorithm === AlgorithmType.DQN ? 'DQN' : 'Q-Learning') }} Settings
           </mat-card-title>
         </mat-card-header>
         <mat-card-content>
@@ -156,6 +156,58 @@
                 <mat-option value="tanh">Tanh</mat-option>
               </mat-select>
             </mat-form-field>
+          </div>
+
+          <!-- NEAT Config -->
+          <div *ngIf="selectedAlgorithm === AlgorithmType.NEAT" class="config-section">
+            <div class="form-row">
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Population Size</mat-label>
+                <input matInput type="number" [(ngModel)]="neatConfig.populationSize" [disabled]="isRunning" step="10" min="10" max="500">
+                <mat-hint>Number of genomes in each generation</mat-hint>
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Max Steps per Agent</mat-label>
+                <input matInput type="number" [(ngModel)]="neatConfig.maxStepsPerAgent" [disabled]="isRunning" step="10" min="50" max="1000">
+                <mat-hint>Maximum steps each agent can take</mat-hint>
+              </mat-form-field>
+            </div>
+            <div class="form-row">
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Mutation Rate</mat-label>
+                <input matInput type="number" [(ngModel)]="neatConfig.mutationRate" [disabled]="isRunning" step="0.01" min="0" max="1">
+                <mat-hint>Probability of mutations</mat-hint>
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Crossover Rate</mat-label>
+                <input matInput type="number" [(ngModel)]="neatConfig.crossoverRate" [disabled]="isRunning" step="0.01" min="0" max="1">
+                <mat-hint>Probability of breeding</mat-hint>
+              </mat-form-field>
+            </div>
+            <div class="form-row">
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Survival Rate</mat-label>
+                <input matInput type="number" [(ngModel)]="neatConfig.survivalRate" [disabled]="isRunning" step="0.01" min="0.1" max="0.5">
+                <mat-hint>Fraction of population that survives</mat-hint>
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Max Stagnation</mat-label>
+                <input matInput type="number" [(ngModel)]="neatConfig.maxStagnation" [disabled]="isRunning" step="1" min="5" max="50">
+                <mat-hint>Generations before species removal</mat-hint>
+              </mat-form-field>
+            </div>
+            <div class="form-row">
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Add Node Rate</mat-label>
+                <input matInput type="number" [(ngModel)]="neatConfig.addNodeMutationRate" [disabled]="isRunning" step="0.001" min="0" max="0.1">
+                <mat-hint>Rate of adding new neurons</mat-hint>
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Add Connection Rate</mat-label>
+                <input matInput type="number" [(ngModel)]="neatConfig.addConnectionMutationRate" [disabled]="isRunning" step="0.001" min="0" max="0.2">
+                <mat-hint>Rate of adding new connections</mat-hint>
+              </mat-form-field>
+            </div>
           </div>
         </mat-card-content>
       </mat-card>
@@ -462,6 +514,102 @@
               <span class="stat-label">Best Action Confidence:</span>
               <span class="stat-value">{{ bestActionConfidence }}</span>
             </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- NEAT Stats -->
+      <mat-card *ngIf="selectedAlgorithm === AlgorithmType.NEAT" class="stats-card">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon>trending_up</mat-icon>
+            NEAT Evolution Progress
+          </mat-card-title>
+        </mat-card-header>
+        <mat-card-content *ngIf="neatStats">
+          <mat-progress-bar 
+            mode="determinate" 
+            [value]="(neatStats.generation / neatConfig.maxStepsPerAgent) * 100"
+            *ngIf="isRunning || neatStats.generation > 0">
+          </mat-progress-bar>
+          <div class="stats-grid">
+            <div class="stat-item">
+              <span class="stat-label">Generation:</span>
+              <span class="stat-value">{{ neatStats.generation }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Species Count:</span>
+              <span class="stat-value">{{ neatStats.speciesCount }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Best Fitness:</span>
+              <span class="stat-value">{{ neatStats.bestFitness.toFixed(2) }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Average Fitness:</span>
+              <span class="stat-value">{{ neatStats.averageFitness.toFixed(2) }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Population Size:</span>
+              <span class="stat-value">{{ neatStats.populationSize }}</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Stagnation:</span>
+              <span class="stat-value">{{ neatStats.stagnationCounter }} / {{ neatConfig.maxStagnation }}</span>
+            </div>
+            <div class="stat-item" *ngIf="neatStats.topAgent">
+              <span class="stat-label">Top Agent:</span>
+              <span class="stat-value">ID {{ neatStats.topAgent.id }} ({{ neatStats.topAgent.fitness.toFixed(2) }})</span>
+            </div>
+            <div class="stat-item status-message" *ngIf="neatStats.topAgent?.success">
+              <mat-icon color="primary">check_circle</mat-icon> Solution Found!
+            </div>
+          </div>
+        </mat-card-content>
+        <mat-card-content *ngIf="!neatStats && !isRunning">
+          <p class="no-stats">Start NEAT training to see evolution progress.</p>
+        </mat-card-content>
+        <mat-card-content *ngIf="isRunning && !neatStats">
+          <p class="no-stats">Initializing NEAT population...</p>
+          <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- NEAT Network Visualization -->
+      <mat-card *ngIf="selectedAlgorithm === AlgorithmType.NEAT" class="neural-network-card">
+        <mat-card-header>
+          <mat-card-title>
+            <mat-icon>device_hub</mat-icon>
+            Evolved Network Topology
+          </mat-card-title>
+          <div class="header-actions">
+            <button mat-icon-button (click)="toggleNetworkVisualization()" 
+                    [matTooltip]="showNetworkViz ? 'Hide Network' : 'Show Network'">
+              <mat-icon>{{ showNetworkViz ? 'visibility_off' : 'visibility' }}</mat-icon>
+            </button>
+          </div>
+        </mat-card-header>
+        <mat-card-content>
+          <div *ngIf="showNetworkViz" class="network-visualization">
+            <div class="network-container">
+              <svg #networkSvg class="network-svg"></svg>
+              <div *ngIf="!isRunning || !networkData" class="network-status">
+                <mat-icon>info_outline</mat-icon>
+                <p>{{ networkStatusMessage }}</p>
+              </div>
+            </div>
+            <div class="network-legend">
+              <span class="legend-item"><span class="neuron-indicator input"></span> Input</span>
+              <span class="legend-item"><span class="neuron-indicator hidden"></span> Hidden</span>
+              <span class="legend-item"><span class="neuron-indicator output"></span> Output</span>
+              <span class="legend-item"><span class="connection-indicator skip"></span> Skip Connections</span>
+            </div>
+            <div class="neat-network-info" *ngIf="neatStats">
+              <small>Best genome from generation {{ neatStats.generation }} with {{ neatStats.topAgent.success ? 'successful' : 'evolving' }} topology</small>
+            </div>
+          </div>
+          <div *ngIf="!showNetworkViz" class="network-collapsed">
+            <p>Click the eye icon to visualize the evolved neural network topology.</p>
           </div>
         </mat-card-content>
       </mat-card>
