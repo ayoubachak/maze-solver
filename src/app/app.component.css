@@ -1,8 +1,6 @@
 .app-header {
-  position: fixed;
+  position: sticky;
   top: 0;
-  left: 0;
-  right: 0;
   z-index: 1000;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
@@ -11,8 +9,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 1.5rem;
   font-weight: 600;
+  font-size: 1.2rem;
 }
 
 .spacer {
@@ -27,38 +25,83 @@
 .nav-links a {
   display: flex;
   align-items: center;
-  gap: 4px;
-  border-radius: 8px;
-  transition: background-color 0.2s ease;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 4px;
+  transition: background-color 0.3s ease;
+  min-width: fit-content;
 }
 
 .nav-links a:hover {
   background-color: rgba(255, 255, 255, 0.1);
 }
 
-.active-link {
-  background-color: rgba(255, 255, 255, 0.2) !important;
+.nav-links a.active-link {
+  background-color: rgba(255, 255, 255, 0.2);
 }
 
 .main-content {
-  margin-top: 64px; /* Height of toolbar */
-  padding: 20px;
+  width: 100%;
   min-height: calc(100vh - 64px);
+  padding: 0;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
-/* Mobile responsive */
+/* Mobile Navigation */
 @media (max-width: 768px) {
+  .app-title {
+    font-size: 1rem;
+  }
+  
+  .app-title mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+  
   .nav-links {
-    flex-direction: column;
     gap: 4px;
   }
   
+  .nav-links a {
+    padding: 6px 12px;
+    font-size: 0.9rem;
+  }
+  
   .nav-links a mat-icon {
-    display: none;
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+@media (max-width: 600px) {
+  .nav-links a {
+    padding: 6px 8px;
+    font-size: 0.8rem;
+  }
+  
+  .nav-links a span {
+    display: none; /* Hide text on very small screens */
   }
   
   .app-title {
-    font-size: 1.2rem;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-header mat-toolbar-row {
+    padding: 0 8px;
+  }
+  
+  .nav-links {
+    gap: 2px;
+  }
+  
+  .nav-links a {
+    padding: 4px 6px;
+    min-width: 40px;
+    justify-content: center;
   }
 }

@@ -19,10 +19,6 @@ export const routes: Routes = [
     loadComponent: () => import('./components/ai-trainer/ai-trainer.component').then(m => m.AiTrainerComponent)
   },
   {
-    path: 'neural-network',
-    loadComponent: () => import('./components/neural-network-viz/neural-network-viz.component').then(m => m.NeuralNetworkVizComponent)
-  },
-  {
     path: '**',
     redirectTo: '/home'
   }

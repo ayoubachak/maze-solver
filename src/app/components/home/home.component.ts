@@ -29,17 +29,10 @@ export class HomeComponent {
     },
     {
       title: 'AI Trainer',
-      description: 'Train a reinforcement learning agent to solve mazes using Q-Learning and Deep Q-Networks',
+      description: 'Train reinforcement learning agents using Q-Learning and Deep Q-Networks (DQN) with real-time neural network visualization',
       icon: 'school',
       route: '/ai-trainer',
       color: '#2196F3'
-    },
-    {
-      title: 'Neural Network',
-      description: 'Visualize how the neural network learns and makes decisions in real-time',
-      icon: 'device_hub',
-      route: '/neural-network',
-      color: '#FF9800'
     }
   ];
-} 
+}

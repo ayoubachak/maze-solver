@@ -28,27 +28,45 @@
 /* Layout */
 .trainer-layout {
   display: grid;
-  grid-template-columns: 3fr 4fr 3fr; /* Controls | Maze | Stats */
+  grid-template-columns: 1fr 1.5fr 1fr; /* Controls | Maze | Visualization */
   gap: 20px;
+  min-height: 70vh;
 }
 
-.controls-panel, .maze-panel, .stats-panel {
+.controls-panel, .maze-panel, .visualization-panel {
   display: flex;
   flex-direction: column;
   gap: 20px;
 }
 
 /* Controls Panel */
-.control-card, .config-card, .maze-display-card, .stats-card {
+.control-card, .config-card, .maze-display-card, .stats-card, .neural-network-card, .q-learning-card {
   width: 100%;
+  height: fit-content;
+}
+
+.control-card .mat-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .full-width {
   width: 100%;
 }
 
+.half-width {
+  width: 48%;
+}
+
+.form-row {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+
 .top-margin {
-    margin-top: 16px;
+  margin-top: 16px;
 }
 
 .algorithm-description {
@@ -63,22 +81,21 @@
   color: #666;
 }
 
-.config-tabs ::ng-deep .mat-tab-body-content {
-  padding: 0;
-}
-
-.config-tabs ::ng-deep .mat-tab-label {
-  min-width: 0!important; 
-  padding: 0 16px!important;
-  font-weight: 500;
-}
-
-.config-card mat-card-content {
-  padding-top: 16px;
+.config-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .action-buttons .btn-group {
-    justify-content: space-around;
+  justify-content: space-around;
+  display: flex;
+  gap: 12px;
+}
+
+.btn-group button {
+  flex: 1;
+  min-width: 0;
 }
 
 /* Maze Panel */
@@ -89,18 +106,20 @@
 
 .maze-container {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
   background-color: #f0f0f0;
-  padding: 10px;
+  padding: 15px;
   border-radius: 8px;
-  min-height: 250px;
-  overflow: auto;
+  min-height: 300px;
+  position: relative;
 }
 
 .maze-grid {
-  border: 1px solid #ccc;
-  display: inline-block; /* To shrink-wrap content */
+  border: 2px solid #333;
+  display: inline-block;
+  background: white;
+  border-radius: 4px;
 }
 
 .maze-row {
@@ -108,13 +127,14 @@
 }
 
 .maze-cell {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
   border: 1px solid #e0e0e0;
-  transition: background-color 0.3s ease;
+  transition: all 0.3s ease;
   display: flex;
   align-items: center;
   justify-content: center;
+  position: relative;
 }
 
 .maze-cell.empty { background-color: #fff; }
@@ -124,19 +144,74 @@
 .maze-cell.current { 
   background-color: #2196F3; 
   border-radius: 50%;
-  transform: scale(0.8);
-  box-shadow: 0 0 8px #2196F3;
+  transform: scale(0.9);
+  box-shadow: 0 0 10px #2196F3;
+  z-index: 2;
 }
-.maze-cell.path { background-color: #FFEB3B; } /* For potential path display */
-.maze-cell.visited { background-color: #CFD8DC; } /* For exploration visualization */
+.maze-cell.path { background-color: #FFEB3B; }
+.maze-cell.visited { 
+  background-color: rgba(33, 150, 243, 0.3);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.7; }
+}
 
 .maze-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   text-align: center;
   color: #999;
-  padding: 20px;
+  padding: 40px 20px;
+  height: 100%;
 }
 
-/* Stats Panel */
+.maze-placeholder mat-icon {
+  font-size: 48px;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+/* Q-Values Overlay */
+.q-values-overlay {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.q-value-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+}
+
+.color-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+.color-indicator.high-q { background-color: #4CAF50; }
+.color-indicator.low-q { background-color: #ffeb3b; }
+
+/* Visualization Panel */
 .stats-card mat-progress-bar {
   margin-bottom: 16px;
 }
@@ -162,11 +237,19 @@
 .stat-label {
   font-weight: 500;
   color: #555;
+  font-size: 0.9rem;
 }
 
 .stat-value {
   font-weight: bold;
   color: #333;
+}
+
+.status-message {
+  justify-content: center;
+  gap: 8px;
+  color: #4CAF50;
+  font-weight: bold;
 }
 
 .no-stats {
@@ -175,56 +258,265 @@
   padding: 20px 0;
 }
 
-.status-message {
-    justify-content: center;
-    gap: 8px;
-    color: #4CAF50;
-    font-weight: bold;
+/* Neural Network Visualization */
+.neural-network-card, .q-learning-card {
+  flex: 1;
 }
 
-/* Responsive */
-@media (max-width: 1200px) {
+.header-actions {
+  display: flex;
+  align-items: center;
+}
+
+.network-visualization {
+  width: 100%;
+}
+
+.network-container {
+  position: relative;
+  width: 100%;
+  min-height: 200px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+.network-svg {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+.network-status {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #777;
+  padding: 20px;
+}
+
+.network-status mat-icon {
+  font-size: 36px;
+  width: 36px;
+  height: 36px;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+.network-legend {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.neuron-indicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 4px;
+}
+
+.neuron-indicator.input { background-color: #a1d99b; }
+.neuron-indicator.hidden { background-color: #fdd0a2; }
+.neuron-indicator.output { background-color: #9ecae1; }
+
+.network-collapsed {
+  text-align: center;
+  color: #666;
+  padding: 20px;
+  font-style: italic;
+}
+
+/* Q-Learning Visualization */
+.q-learning-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.stat-row:last-child {
+  border-bottom: none;
+}
+
+/* Mobile Responsive Design */
+@media (max-width: 1400px) {
   .trainer-layout {
-    grid-template-columns: 1fr 1fr; /* Controls + Stats | Maze */
+    grid-template-columns: 1fr 1fr; /* Two columns */
+    grid-template-rows: auto auto auto;
   }
+  
   .controls-panel {
     grid-row: 1;
     grid-column: 1;
   }
-  .stats-panel {
-    grid-row: 2;
-    grid-column: 1;
-  }
-  .maze-panel {
-    grid-row: 1 / span 2;
+  
+  .visualization-panel {
+    grid-row: 1;
     grid-column: 2;
   }
-  .maze-cell {
-    width: 20px;
-    height: 20px;
-  }
-}
-
-@media (max-width: 900px) {
-  .trainer-layout {
-    grid-template-columns: 1fr; /* Single column */
-  }
+  
   .maze-panel {
-    grid-row: auto;
-    grid-column: auto;
+    grid-row: 2;
+    grid-column: 1 / span 2;
   }
+  
   .maze-cell {
     width: 18px;
     height: 18px;
   }
 }
 
+@media (max-width: 900px) {
+  .ai-trainer-container {
+    padding: 15px;
+  }
+  
+  .trainer-layout {
+    grid-template-columns: 1fr; /* Single column */
+    gap: 15px;
+  }
+  
+  .controls-panel, .maze-panel, .visualization-panel {
+    grid-column: 1;
+  }
+  
+  .maze-cell {
+    width: 16px;
+    height: 16px;
+  }
+  
+  .form-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .half-width {
+    width: 100%;
+  }
+  
+  .btn-group {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .network-legend {
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .algorithm-description {
+    font-size: 0.8rem;
+    padding: 8px;
+  }
+}
+
 @media (max-width: 600px) {
-    .maze-cell {
-        width: 15px;
-        height: 15px;
-    }
-    .section-title {
-        font-size: 1.5rem;
-    }
-} 
+  .ai-trainer-container {
+    padding: 10px;
+  }
+  
+  .maze-cell {
+    width: 14px;
+    height: 14px;
+  }
+  
+  .section-title {
+    font-size: 1.5rem;
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .subtitle {
+    font-size: 1rem;
+  }
+  
+  .maze-container {
+    padding: 10px;
+    min-height: 250px;
+  }
+  
+  .network-container {
+    min-height: 150px;
+  }
+  
+  .stats-grid {
+    font-size: 0.9rem;
+  }
+  
+  .stat-item, .stat-row {
+    padding: 6px 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .maze-cell {
+    width: 12px;
+    height: 12px;
+  }
+  
+  .maze-container {
+    padding: 8px;
+  }
+  
+  .network-legend .legend-item {
+    font-size: 0.75rem;
+  }
+  
+  .algorithm-description {
+    font-size: 0.75rem;
+  }
+}
+
+/* Animation classes */
+.fade-in {
+  animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+  .maze-cell, .fade-in, .maze-cell.visited {
+    animation: none;
+    transition: none;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .maze-cell.wall { 
+    background-color: #000; 
+    border-color: #fff;
+  }
+  
+  .maze-cell.start { 
+    background-color: #00ff00; 
+    color: #000;
+  }
+  
+  .maze-cell.end { 
+    background-color: #ff0000; 
+    color: #fff;
+  }
+}
