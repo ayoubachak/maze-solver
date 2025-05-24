@@ -5,6 +5,8 @@
     "ng": "ng",
     "start": "ng serve",
     "build": "ng build",
+    "build:prod": "ng build --configuration production --base-href /maze-runner-ai/",
+    "deploy": "npm run build:prod && npx angular-cli-ghpages --dir=dist/maze-runner-ai",
     "watch": "ng build --watch --configuration development",
     "test": "ng test"
   },
@@ -32,6 +34,7 @@
     "@angular/compiler-cli": "^19.2.0",
     "@types/d3": "^7.4.3",
     "@types/jasmine": "~5.1.0",
+    "angular-cli-ghpages": "^2.0.3",
     "jasmine-core": "~5.6.0",
     "karma": "~6.4.0",
     "karma-chrome-launcher": "~3.2.0",
