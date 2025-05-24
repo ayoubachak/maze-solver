@@ -111,6 +111,10 @@ export class AiTrainerComponent implements OnInit, OnDestroy, AfterViewInit {
   
   private readonly subscriptions: Subscription[] = [];
 
+  // Enhanced drag/drop state
+  selectedPoint: 'start' | 'end' | null = null;
+  showDragHint = false;
+
   constructor(
     private readonly mazeService: MazeService,
     private readonly aiService: AiService,
@@ -1043,6 +1047,115 @@ export class AiTrainerComponent implements OnInit, OnDestroy, AfterViewInit {
     if (this.visualizationUpdateInterval) {
       clearInterval(this.visualizationUpdateInterval);
       this.visualizationUpdateInterval = null;
+    }
+  }
+
+  onCellClick(cellType: CellType, x: number, y: number): void {
+    // Only allow moving start/end points when not training
+    if (this.isRunning || this.isTesting || !this.maze) return;
+    
+    // If we have a selected point and clicking on a valid target cell
+    if (this.selectedPoint && (cellType === CellType.EMPTY || cellType === CellType.PATH || cellType === CellType.VISITED)) {
+      if (this.selectedPoint === 'start') {
+        this.moveStartPoint(x, y);
+      } else if (this.selectedPoint === 'end') {
+        this.moveEndPoint(x, y);
+      }
+      // Clear selection after moving
+      this.selectedPoint = null;
+      this.showDragHint = false;
+      return;
+    }
+    
+    // If clicking on start/end points, select them
+    if (cellType === CellType.START) {
+      this.selectedPoint = this.selectedPoint === 'start' ? null : 'start';
+      this.showDragHint = this.selectedPoint === 'start';
+      console.log('Start point selected - click on an empty cell to move it');
+    } else if (cellType === CellType.END) {
+      this.selectedPoint = this.selectedPoint === 'end' ? null : 'end';
+      this.showDragHint = this.selectedPoint === 'end';
+      console.log('End point selected - click on an empty cell to move it');
+    } else {
+      // Clicking elsewhere clears selection
+      this.selectedPoint = null;
+      this.showDragHint = false;
+    }
+  }
+
+  onStartPointClick(event: Event, x: number, y: number): void {
+    event.stopPropagation();
+    if (this.isRunning || this.isTesting) return;
+    
+    // Toggle selection of start point
+    this.selectedPoint = this.selectedPoint === 'start' ? null : 'start';
+    this.showDragHint = this.selectedPoint === 'start';
+    console.log(this.selectedPoint === 'start' ? 'Start point selected - click where to move it' : 'Start point deselected');
+  }
+
+  onEndPointClick(event: Event, x: number, y: number): void {
+    event.stopPropagation();
+    if (this.isRunning || this.isTesting) return;
+    
+    // Toggle selection of end point
+    this.selectedPoint = this.selectedPoint === 'end' ? null : 'end';
+    this.showDragHint = this.selectedPoint === 'end';
+    console.log(this.selectedPoint === 'end' ? 'End point selected - click where to move it' : 'End point deselected');
+  }
+
+  private moveStartPoint(newX: number, newY: number): void {
+    if (!this.maze) return;
+    
+    // Clear current start point
+    for (let y = 0; y < this.maze.height; y++) {
+      for (let x = 0; x < this.maze.width; x++) {
+        if (this.maze.grid[y][x].type === CellType.START) {
+          this.maze.grid[y][x].type = CellType.EMPTY;
+        }
+      }
+    }
+    
+    // Set new start point (if it's not a wall or the end point)
+    const targetCell = this.maze.grid[newY][newX];
+    if (targetCell.type !== CellType.WALL && targetCell.type !== CellType.END) {
+      targetCell.type = CellType.START;
+      this.maze.start = { x: newX, y: newY };
+      
+      // Update the maze through the service's BehaviorSubject
+      this.mazeService['currentMazeSubject'].next({ ...this.maze });
+      
+      // Reinitialize AI environment with new start position
+      this.aiService.initializeEnvironment(this.maze);
+      
+      console.log(`Start point moved to (${newX}, ${newY})`);
+    }
+  }
+
+  private moveEndPoint(newX: number, newY: number): void {
+    if (!this.maze) return;
+    
+    // Clear current end point
+    for (let y = 0; y < this.maze.height; y++) {
+      for (let x = 0; x < this.maze.width; x++) {
+        if (this.maze.grid[y][x].type === CellType.END) {
+          this.maze.grid[y][x].type = CellType.EMPTY;
+        }
+      }
+    }
+    
+    // Set new end point (if it's not a wall or the start point)
+    const targetCell = this.maze.grid[newY][newX];
+    if (targetCell.type !== CellType.WALL && targetCell.type !== CellType.START) {
+      targetCell.type = CellType.END;
+      this.maze.end = { x: newX, y: newY };
+      
+      // Update the maze through the service's BehaviorSubject
+      this.mazeService['currentMazeSubject'].next({ ...this.maze });
+      
+      // Reinitialize AI environment with new end position
+      this.aiService.initializeEnvironment(this.maze);
+      
+      console.log(`End point moved to (${newX}, ${newY})`);
     }
   }
 }

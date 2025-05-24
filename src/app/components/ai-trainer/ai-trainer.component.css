@@ -877,29 +877,91 @@
   border: 1px solid rgba(255, 193, 7, 0.4);
 }
 
-.maze-cell.current.agent-path {
-  box-shadow: 0 0 12px rgba(33, 150, 243, 0.8);
-  animation: currentAgentGlow 1s ease-in-out infinite alternate;
+/* Start and end cells should always keep their colors - highest priority */
+.maze-cell.start {
+  background-color: #4CAF50 !important;
+  border: 2px solid #2E7D32 !important;
+  cursor: pointer;
+  position: relative;
 }
 
-@keyframes pathPulse {
+.maze-cell.end {
+  background-color: #f44336 !important;
+  border: 2px solid #c62828 !important;
+  cursor: pointer;
+  position: relative;
+}
+
+/* Cell icon styling for start/end indicators */
+.cell-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 10px;
+  font-weight: bold;
+  color: white;
+  text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
+  pointer-events: auto;
+  z-index: 5;
+  user-select: none;
+  transition: all 0.3s ease;
+}
+
+/* Selection state for start/end icons */
+.cell-icon.selected {
+  font-size: 12px;
+  color: #FFD700;
+  text-shadow: 2px 2px 2px rgba(0, 0, 0, 0.8);
+  animation: selectedPulse 1s ease-in-out infinite alternate;
+}
+
+@keyframes selectedPulse {
   0% { 
-    opacity: 0.7;
-    transform: scale(1);
+    transform: translate(-50%, -50%) scale(1);
+    text-shadow: 2px 2px 2px rgba(0, 0, 0, 0.8);
   }
   100% { 
-    opacity: 1;
-    transform: scale(1.05);
+    transform: translate(-50%, -50%) scale(1.2);
+    text-shadow: 3px 3px 3px rgba(0, 0, 0, 1), 0 0 8px #FFD700;
   }
 }
 
-@keyframes currentAgentGlow {
-  0% { 
-    box-shadow: 0 0 8px rgba(33, 150, 243, 0.6);
+/* Enhanced selection states for maze cells */
+.maze-cell.start[data-clickable="true"] {
+  animation: canMoveStart 2s ease-in-out infinite;
+}
+
+.maze-cell.end[data-clickable="true"] {
+  animation: canMoveEnd 2s ease-in-out infinite;
+}
+
+/* Different animation when selected */
+.maze-cell.start[data-clickable="true"] .cell-icon.selected,
+.maze-cell.end[data-clickable="true"] .cell-icon.selected {
+  animation: selectedAndMovable 1.5s ease-in-out infinite;
+}
+
+@keyframes selectedAndMovable {
+  0%, 100% { 
+    transform: translate(-50%, -50%) scale(1);
+    color: #FFD700;
+    text-shadow: 2px 2px 2px rgba(0, 0, 0, 0.8);
   }
-  100% { 
-    box-shadow: 0 0 16px rgba(33, 150, 243, 1);
+  50% { 
+    transform: translate(-50%, -50%) scale(1.3);
+    color: #FFF700;
+    text-shadow: 3px 3px 3px rgba(0, 0, 0, 1), 0 0 12px #FFD700, 0 0 20px #FFD700;
   }
+}
+
+/* Visual hint for where to place selected point */
+.maze-cell[data-clickable="true"]:not(.start):not(.end):not(.wall):hover {
+  transform: scale(1.05);
+  background-color: rgba(255, 215, 0, 0.3) !important;
+  border-color: #FFD700 !important;
+  border-width: 2px;
+  box-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
 }
 
 /* Performance mode optimizations */

@@ -300,7 +300,22 @@
                 <div *ngFor="let cell of row; let x = index" 
                      [class]="getEnhancedCellClass(cell.type, x, y)"
                      [matTooltip]="getCellTooltip(cell.type, x, y)"
+                     (click)="onCellClick(cell.type, x, y)"
+                     [attr.data-clickable]="!isRunning && !isTesting"
                      >
+                  <!-- Add visual indicators for start/end points -->
+                  <span *ngIf="cell.type === CellType.START" 
+                        class="cell-icon"
+                        [class.selected]="selectedPoint === 'start'"
+                        (click)="onStartPointClick($event, x, y)">
+                    S
+                  </span>
+                  <span *ngIf="cell.type === CellType.END" 
+                        class="cell-icon"
+                        [class.selected]="selectedPoint === 'end'"
+                        (click)="onEndPointClick($event, x, y)">
+                    E
+                  </span>
                 </div>
               </div>
             </div>
