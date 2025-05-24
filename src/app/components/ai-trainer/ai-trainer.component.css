@@ -417,6 +417,33 @@
   min-width: 0;
 }
 
+/* Fix disabled buttons in dark mode - component specific */
+:host-context(.dark-theme) .btn-group button:disabled,
+:host-context(.dark-theme) .btn-group .mat-mdc-flat-button:disabled {
+  background-color: var(--bg-tertiary) !important;
+  color: var(--text-tertiary) !important;
+  opacity: 0.9 !important;
+  border: 1px solid var(--border-color) !important;
+  visibility: visible !important;
+  display: flex !important;
+}
+
+/* Ensure button text is visible when disabled */
+:host-context(.dark-theme) .btn-group button:disabled .mat-icon,
+:host-context(.dark-theme) .btn-group .mat-mdc-flat-button:disabled .mat-icon {
+  color: var(--text-tertiary) !important;
+  opacity: 1 !important;
+}
+
+/* Specific override for mat-flat-button in dark mode */
+:host-context(.dark-theme) .mat-mdc-flat-button[disabled],
+:host-context(.dark-theme) .mat-mdc-flat-button:disabled {
+  background-color: #404040 !important;
+  color: #a0a0a0 !important;
+  opacity: 1 !important;
+  border: 1px solid #606060 !important;
+}
+
 /* Responsive adjustments for smaller screens */
 @media (max-width: 1200px) {
   .btn-group {
