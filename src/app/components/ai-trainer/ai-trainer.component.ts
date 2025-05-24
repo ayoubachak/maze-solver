@@ -1,6 +1,7 @@
 import { Component, OnInit, OnDestroy, AfterViewInit, ViewChild, ElementRef, NgZone, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { trigger, state, style, transition, animate } from '@angular/animations';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -17,6 +18,11 @@ import * as d3 from 'd3';
 
 import { AiService } from '../../services/ai.service';
 import { MazeService } from '../../services/maze.service';
+import { AlgorithmFactory } from '../../services/algorithms/algorithm-factory.service';
+import { BaseAlgorithm } from '../../services/algorithms/base-algorithm';
+import { QLearningAlgorithm } from '../../services/algorithms/qlearning-algorithm';
+import { DQNAlgorithm } from '../../services/algorithms/dqn-algorithm';
+import { NEATAlgorithm } from '../../services/algorithms/neat-algorithm';
 import { Maze, CellType, AlgorithmType } from '../../models/maze.model';
 import { TrainingConfig, NeuralNetworkConfig, TrainingStats, NetworkVisualization, NetworkLayer, Neuron, Connection, NEATConfig, NEATStats } from '../../models/ai.model';
 
@@ -39,7 +45,14 @@ import { TrainingConfig, NeuralNetworkConfig, TrainingStats, NetworkVisualizatio
     MatDividerModule
   ],
   templateUrl: './ai-trainer.component.html',
-  styleUrl: './ai-trainer.component.css'
+  styleUrl: './ai-trainer.component.css',
+  animations: [
+    trigger('expandCollapse', [
+      state('collapsed', style({ height: '0', opacity: '0', overflow: 'hidden' })),
+      state('expanded', style({ height: '*', opacity: '1', overflow: 'visible' })),
+      transition('collapsed <=> expanded', animate('300ms ease-in-out')),
+    ])
+  ]
 })
 export class AiTrainerComponent implements OnInit, OnDestroy, AfterViewInit {
   @ViewChild('networkSvg', { static: false }) private readonly networkSvgRef!: ElementRef<SVGElement>;
@@ -56,9 +69,7 @@ export class AiTrainerComponent implements OnInit, OnDestroy, AfterViewInit {
   // Visualization controls
   showNetworkViz = false;
   showQValues = false;
-  isDqnActive = false;
   networkData: NetworkVisualization | null = null;
-  networkStatusMessage = 'Network visualization will appear when DQN training starts.';
 
   // Enhanced visualization settings
   visualizationEnabled = true;
@@ -75,10 +86,6 @@ export class AiTrainerComponent implements OnInit, OnDestroy, AfterViewInit {
   lastAgentUpdate = 0;
   private readonly AGENT_UPDATE_THROTTLE = 50; // ms
 
-  // Q-Learning insights
-  qTableSize = 'N/A';
-  bestActionConfidence = 'N/A';
-
   // Neural network visualization
   private svg: any;
   private width = 300;
@@ -86,50 +93,14 @@ export class AiTrainerComponent implements OnInit, OnDestroy, AfterViewInit {
   private readonly margin = { top: 10, right: 10, bottom: 20, left: 10 };
 
   selectedAlgorithm: AlgorithmType = AlgorithmType.QLEARNING;
-  algorithms = [
-    { value: AlgorithmType.QLEARNING, name: 'Q-Learning', description: 'A model-free reinforcement learning algorithm to learn the quality of actions.' },
-    { value: AlgorithmType.DQN, name: 'Deep Q-Network (DQN)', description: 'Uses a neural network to approximate Q-values, suitable for complex states.' },
-    { value: AlgorithmType.NEAT, name: 'NEAT', description: 'NeuroEvolution of Augmenting Topologies - evolves neural network structure and weights through genetic algorithms.' }
-  ];
+  currentAlgorithm: BaseAlgorithm;
+  algorithms: { value: AlgorithmType; name: string; description: string; algorithm: BaseAlgorithm }[] = [];
 
-  qLearningConfig: TrainingConfig = {
-    learningRate: 0.1,
-    discountFactor: 0.9,
-    explorationRate: 1.0,
-    explorationDecay: 0.995,
-    minExplorationRate: 0.01,
-    episodes: 1000,
-    maxStepsPerEpisode: 200
-  };
-
-  // Enhanced DQN configuration with better defaults
-  dqnConfig: NeuralNetworkConfig = {
-    hiddenLayers: [256, 256, 128],
-    activation: 'relu',
-    optimizer: 'adam',
-    learningRate: 0.0005,
-    batchSize: 64,
-    memorySize: 50000,
-    targetUpdateFrequency: 100
-  };
-  
-  // NEAT configuration with sensible defaults
-  neatConfig: NEATConfig = {
-    populationSize: 150,
-    maxStagnation: 15,
-    speciesThreshold: 3.0,
-    survivalRate: 0.2,
-    mutationRate: 0.8,
-    crossoverRate: 0.75,
-    maxStepsPerAgent: 200,
-    excessCoefficient: 1.0,
-    disjointCoefficient: 1.0,
-    weightCoefficient: 0.4,
-    addNodeMutationRate: 0.03,
-    addConnectionMutationRate: 0.05,
-    weightMutationRate: 0.8,
-    weightPerturbationRate: 0.9
-  };
+  // Algorithm configurations - now using the algorithm classes
+  qLearningConfig: TrainingConfig;
+  dqnTrainingConfig: TrainingConfig;
+  dqnNetworkConfig: NeuralNetworkConfig;
+  neatConfig: NEATConfig;
   
   // Maze settings
   showMazeSettings = false;
@@ -143,9 +114,23 @@ export class AiTrainerComponent implements OnInit, OnDestroy, AfterViewInit {
   constructor(
     private readonly mazeService: MazeService,
     private readonly aiService: AiService,
+    private readonly algorithmFactory: AlgorithmFactory,
     private readonly cdr: ChangeDetectorRef,
     private readonly ngZone: NgZone
-  ) {}
+  ) {
+    // Initialize algorithms and configurations
+    this.algorithms = this.algorithmFactory.getAllAlgorithms();
+    this.currentAlgorithm = this.algorithms[0].algorithm;
+    
+    // Get default configurations from algorithm classes
+    this.qLearningConfig = (this.algorithmFactory.getAlgorithm(AlgorithmType.QLEARNING) as QLearningAlgorithm).getDefaultConfig();
+    
+    const dqnAlgorithm = this.algorithmFactory.getAlgorithm(AlgorithmType.DQN) as DQNAlgorithm;
+    this.dqnTrainingConfig = dqnAlgorithm.getDefaultTrainingConfig();
+    this.dqnNetworkConfig = dqnAlgorithm.getDefaultNetworkConfig();
+    
+    this.neatConfig = (this.algorithmFactory.getAlgorithm(AlgorithmType.NEAT) as NEATAlgorithm).getDefaultConfig();
+  }
 
   ngOnInit(): void {
     this.subscriptions.push(
@@ -159,7 +144,7 @@ export class AiTrainerComponent implements OnInit, OnDestroy, AfterViewInit {
       this.aiService.trainingStats$.subscribe(stats => {
         this.ngZone.run(() => {
           this.trainingStats = stats;
-          this.updateVisualizationInsights();
+          this.currentAlgorithm.updateVisualizationInsights();
           this.cdr.detectChanges();
         });
       }),
@@ -175,31 +160,39 @@ export class AiTrainerComponent implements OnInit, OnDestroy, AfterViewInit {
       this.aiService.trainingStatus$.subscribe(status => {
         this.isRunning = status.isRunning;
         this.isPaused = status.isPaused;
-        this.isDqnActive = status.isRunning && this.selectedAlgorithm === AlgorithmType.DQN;
         
-        if (!status.isRunning && status.message) {
-            console.log("Training status: ", status.message);
+        // Update algorithm-specific status
+        if (this.currentAlgorithm.algorithmType === AlgorithmType.DQN) {
+          const dqnAlgorithm = this.currentAlgorithm as DQNAlgorithm;
+          dqnAlgorithm.updateNetworkStatus(status.isRunning, 
+            status.isRunning ? 'Neural network is active and learning...' : 'Start DQN training to see neural network activity.'
+          );
+          
+          if (status.isRunning && this.showNetworkViz) {
+            this.createSampleNetwork();
+          }
+        } else if (this.currentAlgorithm.algorithmType === AlgorithmType.NEAT) {
+          const neatAlgorithm = this.currentAlgorithm as NEATAlgorithm;
+          neatAlgorithm.updateNetworkStatus(
+            status.isRunning ? 'NEAT networks are evolving...' : 'Start NEAT training to see evolved neural networks.'
+          );
+          
+          // Create NEAT network visualization when training starts, even without stats initially
+          if (status.isRunning && this.showNetworkViz) {
+            // Create initial visualization or wait for first stats
+            setTimeout(() => {
+              if (this.neatStats) {
+                this.createNEATNetworkVisualization();
+              } else {
+                // Create a placeholder visualization for generation 0
+                this.createInitialNEATVisualization();
+              }
+            }, 100);
+          }
         }
         
-        // Update network visualization status
-        if (this.selectedAlgorithm === AlgorithmType.DQN) {
-          if (this.isDqnActive) {
-            this.networkStatusMessage = 'Neural network is active and learning...';
-            if (this.showNetworkViz) {
-              this.createSampleNetwork(); // Create or update network visualization
-            }
-          } else {
-            this.networkStatusMessage = 'Start DQN training to see neural network activity.';
-          }
-        } else if (this.selectedAlgorithm === AlgorithmType.NEAT) {
-          if (status.isRunning) {
-            this.networkStatusMessage = 'NEAT networks are evolving...';
-            if (this.showNetworkViz && this.neatStats) {
-              this.createNEATNetworkVisualization(); // Create NEAT network visualization
-            }
-          } else {
-            this.networkStatusMessage = 'Start NEAT training to see evolved neural networks.';
-          }
+        if (!status.isRunning && status.message) {
+          console.log("Training status: ", status.message);
         }
         
         this.cdr.detectChanges();
@@ -222,7 +215,13 @@ export class AiTrainerComponent implements OnInit, OnDestroy, AfterViewInit {
       this.aiService.neatStats$.subscribe(stats => {
         this.ngZone.run(() => {
           this.neatStats = stats;
-          this.updateVisualizationInsights();
+          if (this.currentAlgorithm && this.currentAlgorithm.algorithmType === AlgorithmType.NEAT) {
+            this.currentAlgorithm.updateVisualizationInsights();
+            // Update NEAT network visualization if enabled
+            if (this.showNetworkViz && stats) {
+              this.createNEATNetworkVisualization();
+            }
+          }
           this.cdr.detectChanges();
         });
       })
@@ -242,8 +241,25 @@ export class AiTrainerComponent implements OnInit, OnDestroy, AfterViewInit {
     this.aiService.stopTraining();
   }
 
+  // Delegate methods to current algorithm
+  get qTableSize(): string {
+    return this.currentAlgorithm.qTableSize;
+  }
+
+  get bestActionConfidence(): string {
+    return this.currentAlgorithm.bestActionConfidence;
+  }
+
+  get networkStatusMessage(): string {
+    return this.currentAlgorithm.networkStatusMessage;
+  }
+
+  get isDqnActive(): boolean {
+    return this.currentAlgorithm.isDqnActive;
+  }
+
   generateMaze(): void {
-    this.aiService.stopTraining();
+    this.currentAlgorithm.stopTraining();
     this.mazeService.generateMaze(this.mazeSize.width, this.mazeSize.height);
   }
 
@@ -253,42 +269,48 @@ export class AiTrainerComponent implements OnInit, OnDestroy, AfterViewInit {
     // Reset visualization state when starting new training
     this.resetVisualizationState();
     
-    // Pass the appropriate config based on selected algorithm
-    const config = this.selectedAlgorithm === AlgorithmType.NEAT ? this.neatConfig : this.qLearningConfig;
-    this.aiService.startTraining(this.selectedAlgorithm, config, this.dqnConfig);
+    // Configure the algorithm with current settings
+    this.currentAlgorithm.initializeConfiguration({
+      type: this.selectedAlgorithm,
+      trainingConfig: this.selectedAlgorithm === AlgorithmType.QLEARNING ? this.qLearningConfig : this.dqnTrainingConfig,
+      neatConfig: this.selectedAlgorithm === AlgorithmType.NEAT ? this.neatConfig : undefined,
+      neuralNetworkConfig: this.selectedAlgorithm === AlgorithmType.DQN ? this.dqnNetworkConfig : undefined
+    });
+    
+    this.currentAlgorithm.startTraining();
   }
 
   pauseTraining(): void {
-    this.aiService.pauseTraining();
+    this.currentAlgorithm.pauseTraining();
   }
 
   resumeTraining(): void {
-    this.aiService.resumeTraining();
+    this.currentAlgorithm.resumeTraining();
   }
 
   stopTraining(): void {
-    this.aiService.stopTraining();
+    this.currentAlgorithm.stopTraining();
   }
 
   testModel(): void {
     if (!this.maze) return;
-    this.aiService.testModel(this.maze);
+    this.currentAlgorithm.testModel();
   }
 
   saveModel(): void {
-    this.aiService.saveModel();
+    this.currentAlgorithm.saveModel();
   }
 
   loadModel(): void {
-    this.aiService.loadModel();
+    this.currentAlgorithm.loadModel();
   }
 
   getTrainingProgress(): number {
-    return this.aiService.getCurrentProgress();
+    return this.currentAlgorithm.getCurrentProgress();
   }
 
   canTestModel(): boolean {
-    return !this.isRunning && this.trainingStats !== null && this.trainingStats.episode > 0;
+    return !this.isRunning && this.currentAlgorithm.canTestModel();
   }
 
   canPauseResume(): boolean {
@@ -398,9 +420,9 @@ export class AiTrainerComponent implements OnInit, OnDestroy, AfterViewInit {
     if (!this.networkSvgRef) return;
 
     // Create a sample network structure based on DQN config
-    const hiddenLayers = Array.isArray(this.dqnConfig.hiddenLayers) 
-      ? this.dqnConfig.hiddenLayers 
-      : String(this.dqnConfig.hiddenLayers).split(',').map((n: string) => parseInt(n.trim(), 10));
+    const hiddenLayers = Array.isArray(this.dqnNetworkConfig.hiddenLayers) 
+      ? this.dqnNetworkConfig.hiddenLayers 
+      : String(this.dqnNetworkConfig.hiddenLayers).split(',').map((n: string) => parseInt(n.trim(), 10));
 
     const inputLayer: NetworkLayer = {
       type: 'input',
@@ -550,12 +572,6 @@ export class AiTrainerComponent implements OnInit, OnDestroy, AfterViewInit {
   }
 
   private updateVisualizationInsights(): void {
-    if (this.selectedAlgorithm === AlgorithmType.QLEARNING && this.trainingStats) {
-      // Update Q-Learning insights
-      this.qTableSize = `${this.trainingStats.episode * 4}+`; // Rough estimate
-      this.bestActionConfidence = `${(Math.random() * 0.5 + 0.5).toFixed(2)}`; // Placeholder
-    }
-    
     // Update neural network if active
     if (this.selectedAlgorithm === AlgorithmType.DQN && this.showNetworkViz && this.isDqnActive) {
       // Update network visualization with new data
@@ -723,11 +739,6 @@ export class AiTrainerComponent implements OnInit, OnDestroy, AfterViewInit {
     
     // Reset network visualization
     this.networkData = null;
-    if (this.selectedAlgorithm === AlgorithmType.DQN) {
-      this.networkStatusMessage = 'Initializing neural network...';
-    } else {
-      this.networkStatusMessage = 'Network visualization will appear when DQN training starts.';
-    }
     
     // Clear any visual elements
     this.clearVisualizationElements();
@@ -739,20 +750,29 @@ export class AiTrainerComponent implements OnInit, OnDestroy, AfterViewInit {
       this.stopTraining();
     }
     
+    // Clear all stats immediately to prevent showing old data
+    this.trainingStats = null;
+    this.neatStats = null;
+    this.testStats = null;
+    
+    // Switch to the new algorithm
+    this.currentAlgorithm = this.algorithmFactory.getAlgorithm(this.selectedAlgorithm);
+    
     // Reset all stats and visualization immediately
+    this.currentAlgorithm.resetVisualizationState();
     this.resetVisualizationState();
     
     // Update network visualization status based on new algorithm
     if (this.selectedAlgorithm === AlgorithmType.DQN) {
-      this.networkStatusMessage = 'Start DQN training to see neural network activity.';
+      this.showNetworkViz = false; // Reset network viz state
     } else if (this.selectedAlgorithm === AlgorithmType.NEAT) {
-      this.networkStatusMessage = 'Start NEAT training to see evolved neural networks.';
+      this.showNetworkViz = false; // Reset network viz state
     } else {
-      this.networkStatusMessage = 'Network visualization is only available for DQN and NEAT algorithms.';
       this.showNetworkViz = false; // Hide network viz for Q-Learning
     }
     
-    // Force change detection
+    // Force immediate change detection to update the UI
+    this.cdr.markForCheck();
     this.cdr.detectChanges();
   }
 
@@ -842,6 +862,74 @@ export class AiTrainerComponent implements OnInit, OnDestroy, AfterViewInit {
             active: true
           });
         }
+      });
+    });
+    
+    this.networkData = {
+      layers,
+      connections,
+      currentInput: inputLayer.neurons.map(n => n.value),
+      currentOutput: outputLayer.neurons.map(n => n.value)
+    };
+    
+    this.drawNetwork();
+  }
+
+  private createInitialNEATVisualization(): void {
+    if (!this.networkSvgRef) return;
+
+    // Create a minimal initial visualization for generation 0
+    const inputLayer: NetworkLayer = {
+      type: 'input',
+      neurons: Array(4).fill(null).map((_, i) => ({ 
+        id: `i${i}`, 
+        value: Math.random(), 
+        bias: 0, 
+        activation: Math.random(), 
+        weights: [], 
+        connections: [] 
+      }))
+    };
+
+    // Start with a simple hidden layer structure
+    const hiddenLayer: NetworkLayer = {
+      type: 'hidden',
+      neurons: Array(2).fill(null).map((_, i) => ({ 
+        id: `h${i}`, 
+        value: Math.random(), 
+        bias: Math.random() * 0.2 - 0.1, 
+        activation: Math.random(), 
+        weights: [], 
+        connections: [] 
+      }))
+    };
+
+    const outputLayer: NetworkLayer = {
+      type: 'output',
+      neurons: Array(4).fill(null).map((_, i) => ({ 
+        id: `o${i}`, 
+        value: Math.random(), 
+        bias: 0, 
+        activation: Math.random(), 
+        weights: [], 
+        connections: [] 
+      }))
+    };
+
+    const layers = [inputLayer, hiddenLayer, outputLayer];
+
+    // Create basic connections for initial topology
+    const connections: Connection[] = [];
+    
+    // Direct input to output connections (minimal NEAT topology)
+    inputLayer.neurons.forEach(neuron1 => {
+      outputLayer.neurons.forEach(neuron2 => {
+        connections.push({ 
+          from: neuron1.id, 
+          to: neuron2.id, 
+          weight: (Math.random() - 0.5) * 1,
+          active: true
+        });
       });
     });
     

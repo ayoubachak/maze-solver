@@ -971,3 +971,15 @@
     color: #fff;
   }
 }
+
+.connection-indicator {
+  width: 12px;
+  height: 3px;
+  display: inline-block;
+  margin-right: 4px;
+  border-radius: 1px;
+}
+
+.connection-indicator.skip { 
+  background: linear-gradient(90deg, #ff9800, #f44336); 
+}

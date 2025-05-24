@@ -136,21 +136,21 @@
           <div *ngIf="selectedAlgorithm === AlgorithmType.DQN" class="config-section">
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Hidden Layers (comma-sep)</mat-label>
-              <input matInput type="text" [(ngModel)]="dqnConfig.hiddenLayers" [disabled]="isRunning" placeholder="e.g., 128,64">
+              <input matInput type="text" [(ngModel)]="dqnNetworkConfig.hiddenLayers" [disabled]="isRunning" placeholder="e.g., 128,64">
             </mat-form-field>
             <div class="form-row">
               <mat-form-field appearance="outline" class="half-width">
                 <mat-label>Learning Rate</mat-label>
-                <input matInput type="number" [(ngModel)]="dqnConfig.learningRate" [disabled]="isRunning" step="0.0001" min="0">
+                <input matInput type="number" [(ngModel)]="dqnNetworkConfig.learningRate" [disabled]="isRunning" step="0.0001" min="0">
               </mat-form-field>
               <mat-form-field appearance="outline" class="half-width">
                 <mat-label>Batch Size</mat-label>
-                <input matInput type="number" [(ngModel)]="dqnConfig.batchSize" [disabled]="isRunning" step="1" min="1">
+                <input matInput type="number" [(ngModel)]="dqnNetworkConfig.batchSize" [disabled]="isRunning" step="1" min="1">
               </mat-form-field>
             </div>
             <mat-form-field appearance="outline" class="full-width">
               <mat-label>Activation Function</mat-label>
-              <mat-select [(ngModel)]="dqnConfig.activation" [disabled]="isRunning">
+              <mat-select [(ngModel)]="dqnNetworkConfig.activation" [disabled]="isRunning">
                 <mat-option value="relu">ReLU</mat-option>
                 <mat-option value="sigmoid">Sigmoid</mat-option>
                 <mat-option value="tanh">Tanh</mat-option>
@@ -360,7 +360,7 @@
             <!-- Speed Control -->
             <div class="viz-control-row" *ngIf="visualizationEnabled">
               <div class="control-main">
-                <label class="control-label">Speed: {{ getVisualizationSpeedLabel() }}</label>
+                <span class="control-label">Speed: {{ getVisualizationSpeedLabel() }}</span>
                 <mat-slider class="compact-slider" 
                             [min]="1" 
                             [max]="100" 
@@ -529,7 +529,7 @@
         <mat-card-content *ngIf="neatStats">
           <mat-progress-bar 
             mode="determinate" 
-            [value]="(neatStats.generation / neatConfig.maxStepsPerAgent) * 100"
+            [value]="(neatStats.generation / 50) * 100"
             *ngIf="isRunning || neatStats.generation > 0">
           </mat-progress-bar>
           <div class="stats-grid">
@@ -593,7 +593,7 @@
           <div *ngIf="showNetworkViz" class="network-visualization">
             <div class="network-container">
               <svg #networkSvg class="network-svg"></svg>
-              <div *ngIf="!isRunning || !networkData" class="network-status">
+              <div *ngIf="!networkData" class="network-status">
                 <mat-icon>info_outline</mat-icon>
                 <p>{{ networkStatusMessage }}</p>
               </div>

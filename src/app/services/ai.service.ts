@@ -229,16 +229,30 @@ export class AiService {
   }
 
   private async runNEATTrainingLoop(): Promise<void> {
-    const maxGenerations = this.neatConfig?.populationSize || 100; // Use a sensible default for generations
+    // Use maxStepsPerAgent as the generation limit instead of populationSize
+    const maxGenerations = this.neatConfig?.maxStepsPerAgent ? Math.floor(this.neatConfig.maxStepsPerAgent / 10) : 50;
+    
     const runGeneration = async () => {
       if (!this.isPaused && this.neatConfig && this.neatGeneration < maxGenerations) {
-        console.log(`Running NEAT generation ${this.neatGeneration + 1}`);
+        console.log(`Running NEAT generation ${this.neatGeneration + 1}/${maxGenerations}`);
         await this.runNEATGeneration();
+        
+        // Check for early termination conditions
+        if (this.neatStagnationCounter >= this.NEAT_MAX_STAGNATION) {
+          this.stopTraining(`NEAT training completed: Stagnated for ${this.NEAT_MAX_STAGNATION} generations. Best fitness: ${this.neatBestFitness.toFixed(2)}`);
+          return;
+        }
+        
+        // Check if we found a good solution
+        if (this.neatBestFitness > 100) {
+          this.stopTraining(`NEAT training completed: Solution found! Best fitness: ${this.neatBestFitness.toFixed(2)}`);
+          return;
+        }
         
         // Schedule next generation
         setTimeout(() => runGeneration(), 100);
       } else if (!this.isPaused && this.neatConfig && this.neatGeneration >= maxGenerations) {
-        this.stopTraining('NEAT training completed: All generations finished.');
+        this.stopTraining(`NEAT training completed: All ${maxGenerations} generations finished. Best fitness: ${this.neatBestFitness.toFixed(2)}`);
       }
     };
 
@@ -845,6 +859,22 @@ export class AiService {
   private initializeNEAT(): void {
     console.log('Initializing NEAT algorithm...');
     this.initializeNEATPopulation();
+    
+    // Publish initial stats immediately after initialization
+    const initialStats = this.getNEATStats();
+    this.ngZone.run(() => {
+      this.neatStatsSubject.next(initialStats);
+      this.trainingStatsSubject.next({
+        episode: 0,
+        totalReward: 0,
+        steps: 0,
+        explorationRate: 0,
+        success: false,
+        averageReward: 0,
+        successRate: 0
+      });
+    });
+    
     console.log(`NEAT initialized with ${this.neatPopulation.length} genomes in ${this.neatSpecies.length} species`);
   }
 
@@ -1156,18 +1186,22 @@ export class AiService {
 
     this.neatGeneration++;
 
-    // Update stats
+    // Update stats and publish them
     const stats = this.getNEATStats();
-    this.neatStatsSubject.next(stats);
-    this.trainingStatsSubject.next({
-      episode: stats.generation,
-      totalReward: stats.bestFitness,
-      steps: 0,
-      explorationRate: 0,
-      success: stats.bestFitness > 50,
-      averageReward: stats.averageFitness,
-      successRate: (this.neatPopulation.filter(g => g.fitness > 50).length / this.neatPopulation.length) * 100
+    this.ngZone.run(() => {
+      this.neatStatsSubject.next(stats);
+      this.trainingStatsSubject.next({
+        episode: stats.generation,
+        totalReward: stats.bestFitness,
+        steps: 0,
+        explorationRate: 0,
+        success: stats.bestFitness > 50,
+        averageReward: stats.averageFitness,
+        successRate: (this.neatPopulation.filter(g => g.fitness > 50).length / this.neatPopulation.length) * 100
+      });
     });
+
+    console.log(`NEAT Generation ${this.neatGeneration}: Best=${this.neatBestFitness.toFixed(2)}, Avg=${stats.averageFitness.toFixed(2)}, Species=${this.neatSpecies.length}`);
   }
 
   private calculateSpeciesFitness(): void {
