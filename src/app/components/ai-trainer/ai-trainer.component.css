@@ -100,6 +100,21 @@
   min-width: 0;
 }
 
+/* Fix gear icon button to maintain circular shape */
+.btn-group button[mat-icon-button] {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border-radius: 50%;
+}
+
+.btn-group button[mat-icon-button] .mat-icon {
+  width: 24px;
+  height: 24px;
+  font-size: 24px;
+}
+
 /* Maze Panel */
 .maze-display-card .mat-card-header {
   text-align: center;
@@ -417,6 +432,21 @@
   min-width: 0;
 }
 
+/* Fix gear icon button to maintain circular shape */
+.btn-group button[mat-icon-button] {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border-radius: 50%;
+}
+
+.btn-group button[mat-icon-button] .mat-icon {
+  width: 24px;
+  height: 24px;
+  font-size: 24px;
+}
+
 /* Fix disabled buttons in dark mode - component specific */
 :host-context(.dark-theme) .btn-group button:disabled,
 :host-context(.dark-theme) .btn-group .mat-mdc-flat-button:disabled {
@@ -442,6 +472,56 @@
   color: #a0a0a0 !important;
   opacity: 1 !important;
   border: 1px solid #606060 !important;
+}
+
+/* Maze Settings Section */
+.maze-settings {
+  margin-top: 12px;
+  padding: 16px;
+  background-color: var(--bg-secondary);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.form-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.form-row .half-width {
+  flex: 1;
+}
+
+.maze-size-presets {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.maze-size-presets button {
+  font-size: 0.8rem;
+  padding: 4px 12px;
+  min-width: auto;
+}
+
+/* Responsive adjustments for maze settings */
+@media (max-width: 768px) {
+  .form-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .maze-size-presets {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .maze-size-presets span {
+    margin-bottom: 8px;
+  }
 }
 
 /* Responsive adjustments for smaller screens */

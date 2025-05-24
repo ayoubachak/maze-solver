@@ -37,6 +37,68 @@
               <mat-icon>shuffle</mat-icon>
               New Maze ({{mazeSize.width}}x{{mazeSize.height}})
             </button>
+            <button mat-icon-button 
+                    (click)="toggleMazeSettings()" 
+                    [disabled]="isRunning"
+                    matTooltip="Configure maze dimensions">
+              <mat-icon>settings</mat-icon>
+            </button>
+          </div>
+
+          <!-- Maze Settings (Expandable) -->
+          <div class="maze-settings" *ngIf="showMazeSettings">
+            <mat-divider style="margin: 16px 0;"></mat-divider>
+            <h4 style="margin: 0 0 12px 0; color: var(--text-secondary);">
+              <mat-icon style="vertical-align: middle; margin-right: 8px;">tune</mat-icon>
+              Maze Configuration
+            </h4>
+            <div class="form-row">
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Width</mat-label>
+                <input matInput 
+                       type="number" 
+                       [(ngModel)]="mazeSize.width" 
+                       [disabled]="isRunning"
+                       min="5" 
+                       max="50" 
+                       step="2">
+                <mat-hint>5-50 (odd numbers work best)</mat-hint>
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="half-width">
+                <mat-label>Height</mat-label>
+                <input matInput 
+                       type="number" 
+                       [(ngModel)]="mazeSize.height" 
+                       [disabled]="isRunning"
+                       min="5" 
+                       max="50" 
+                       step="2">
+                <mat-hint>5-50 (odd numbers work best)</mat-hint>
+              </mat-form-field>
+            </div>
+            <div class="maze-size-presets">
+              <span style="color: var(--text-secondary); font-size: 0.9rem; margin-right: 8px;">Quick sizes:</span>
+              <button mat-stroked-button 
+                      size="small" 
+                      (click)="setMazeSize(11, 9)" 
+                      [disabled]="isRunning"
+                      style="margin-right: 8px;">
+                Small (11x9)
+              </button>
+              <button mat-stroked-button 
+                      size="small" 
+                      (click)="setMazeSize(15, 11)" 
+                      [disabled]="isRunning"
+                      style="margin-right: 8px;">
+                Medium (15x11)
+              </button>
+              <button mat-stroked-button 
+                      size="small" 
+                      (click)="setMazeSize(21, 15)" 
+                      [disabled]="isRunning">
+                Large (21x15)
+              </button>
+            </div>
           </div>
         </mat-card-content>
       </mat-card>

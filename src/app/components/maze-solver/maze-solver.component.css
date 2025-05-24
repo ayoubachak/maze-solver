@@ -379,3 +379,89 @@
     align-items: flex-start;
   }
 }
+
+/* Fix disabled buttons in dark mode */
+:host-context(.dark-theme) button:disabled,
+:host-context(.dark-theme) .mat-mdc-raised-button:disabled,
+:host-context(.dark-theme) .mat-mdc-flat-button:disabled,
+:host-context(.dark-theme) .mat-mdc-stroked-button:disabled {
+  background-color: #404040 !important;
+  color: #a0a0a0 !important;
+  opacity: 1 !important;
+  border: 1px solid #606060 !important;
+  visibility: visible !important;
+  display: flex !important;
+}
+
+/* Ensure button text and icons are visible when disabled */
+:host-context(.dark-theme) button:disabled .mat-icon,
+:host-context(.dark-theme) .mat-mdc-raised-button:disabled .mat-icon,
+:host-context(.dark-theme) .mat-mdc-flat-button:disabled .mat-icon {
+  color: #a0a0a0 !important;
+  opacity: 1 !important;
+}
+
+/* Fix disabled form controls in dark mode */
+:host-context(.dark-theme) .mat-mdc-form-field.mat-form-field-disabled .mat-mdc-text-field-wrapper {
+  background-color: #404040 !important;
+}
+
+:host-context(.dark-theme) .mat-mdc-form-field.mat-form-field-disabled .mat-mdc-input-element {
+  color: #a0a0a0 !important;
+}
+
+:host-context(.dark-theme) .mat-mdc-form-field.mat-form-field-disabled .mat-mdc-floating-label {
+  color: #808080 !important;
+}
+
+/* Fix disabled mat-select in dark mode */
+:host-context(.dark-theme) .mat-mdc-form-field.mat-form-field-disabled .mat-mdc-select {
+  color: #a0a0a0 !important;
+}
+
+:host-context(.dark-theme) .mat-mdc-form-field.mat-form-field-disabled .mat-mdc-select-arrow {
+  color: #808080 !important;
+}
+
+:host-context(.dark-theme) .mat-mdc-form-field.mat-form-field-disabled .mdc-notched-outline__leading,
+:host-context(.dark-theme) .mat-mdc-form-field.mat-form-field-disabled .mdc-notched-outline__notch,
+:host-context(.dark-theme) .mat-mdc-form-field.mat-form-field-disabled .mdc-notched-outline__trailing {
+  border-color: #606060 !important;
+}
+
+/* Fix disabled sliders in dark mode */
+:host-context(.dark-theme) .mat-mdc-slider.mat-mdc-slider-disabled .mat-mdc-slider-track-background {
+  background-color: #606060 !important;
+}
+
+:host-context(.dark-theme) .mat-mdc-slider.mat-mdc-slider-disabled .mat-mdc-slider-track-fill {
+  background-color: #808080 !important;
+}
+
+:host-context(.dark-theme) .mat-mdc-slider.mat-mdc-slider-disabled .mat-mdc-slider-thumb {
+  background-color: #808080 !important;
+  border-color: #808080 !important;
+}
+
+/* Fix disabled checkboxes in dark mode */
+:host-context(.dark-theme) .mat-mdc-checkbox.mat-mdc-checkbox-disabled .mdc-checkbox .mdc-checkbox__background {
+  background-color: #404040 !important;
+  border-color: #606060 !important;
+}
+
+:host-context(.dark-theme) .mat-mdc-checkbox.mat-mdc-checkbox-disabled .mdc-form-field {
+  color: #a0a0a0 !important;
+}
+
+:host-context(.dark-theme) .mat-mdc-checkbox.mat-mdc-checkbox-disabled .mdc-checkbox__checkmark {
+  color: #a0a0a0 !important;
+}
+
+/* Fix disabled labels in dark mode */
+:host-context(.dark-theme) .setting-group label {
+  color: var(--text-primary) !important;
+}
+
+:host-context(.dark-theme) .setting-group:has(.mat-mdc-slider-disabled) label {
+  color: #a0a0a0 !important;
+}

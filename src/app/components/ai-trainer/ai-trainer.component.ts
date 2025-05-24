@@ -11,6 +11,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatInputModule } from '@angular/material/input';
 import { MatTooltipModule } from '@angular/material/tooltip';
+import { MatDividerModule } from '@angular/material/divider';
 import { Subscription } from 'rxjs';
 import * as d3 from 'd3';
 
@@ -34,7 +35,8 @@ import { TrainingConfig, TrainingStats, NeuralNetworkConfig, NetworkVisualizatio
     MatCheckboxModule,
     MatProgressBarModule,
     MatInputModule,
-    MatTooltipModule
+    MatTooltipModule,
+    MatDividerModule
   ],
   templateUrl: './ai-trainer.component.html',
   styleUrl: './ai-trainer.component.css'
@@ -92,6 +94,9 @@ export class AiTrainerComponent implements OnInit, OnDestroy, AfterViewInit {
     memorySize: 10000,
     targetUpdateFrequency: 10
   };
+  
+  // Maze settings
+  showMazeSettings = false;
   
   mazeSize = { width: 15, height: 11 }; // Smaller maze for faster training
   CellType = CellType;
@@ -272,6 +277,17 @@ export class AiTrainerComponent implements OnInit, OnDestroy, AfterViewInit {
 
   getAlgorithmDescription(): string {
     return this.algorithms.find(a => a.value === this.selectedAlgorithm)?.description ?? '';
+  }
+
+  // Maze configuration methods
+  toggleMazeSettings(): void {
+    this.showMazeSettings = !this.showMazeSettings;
+  }
+
+  setMazeSize(width: number, height: number): void {
+    this.mazeSize = { width, height };
+    // Automatically generate a new maze with the new dimensions
+    this.generateMaze();
   }
 
   // Neural Network Visualization Methods
