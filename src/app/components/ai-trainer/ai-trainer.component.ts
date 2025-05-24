@@ -145,6 +145,8 @@ export class AiTrainerComponent implements OnInit, OnDestroy, AfterViewInit {
         this.ngZone.run(() => {
           this.trainingStats = stats;
           this.currentAlgorithm.updateVisualizationInsights();
+          // Trigger visualization updates for dynamic networks
+          this.updateVisualizationInsights();
           this.cdr.detectChanges();
         });
       }),
@@ -170,6 +172,9 @@ export class AiTrainerComponent implements OnInit, OnDestroy, AfterViewInit {
           
           if (status.isRunning && this.showNetworkViz) {
             this.createSampleNetwork();
+            this.startVisualizationUpdates();
+          } else if (!status.isRunning) {
+            this.stopVisualizationUpdates();
           }
         } else if (this.currentAlgorithm.algorithmType === AlgorithmType.NEAT) {
           const neatAlgorithm = this.currentAlgorithm as NEATAlgorithm;
@@ -177,17 +182,18 @@ export class AiTrainerComponent implements OnInit, OnDestroy, AfterViewInit {
             status.isRunning ? 'NEAT networks are evolving...' : 'Start NEAT training to see evolved neural networks.'
           );
           
-          // Create NEAT network visualization when training starts, even without stats initially
+          // Create NEAT network visualization when training starts
           if (status.isRunning && this.showNetworkViz) {
-            // Create initial visualization or wait for first stats
             setTimeout(() => {
               if (this.neatStats) {
                 this.createNEATNetworkVisualization();
               } else {
-                // Create a placeholder visualization for generation 0
                 this.createInitialNEATVisualization();
               }
+              this.startVisualizationUpdates();
             }, 100);
+          } else if (!status.isRunning) {
+            this.stopVisualizationUpdates();
           }
         }
         
@@ -211,14 +217,15 @@ export class AiTrainerComponent implements OnInit, OnDestroy, AfterViewInit {
           this.cdr.detectChanges();
         });
       }),
-      // Subscribe to NEAT stats
+      // Subscribe to NEAT stats - Enhanced subscription
       this.aiService.neatStats$.subscribe(stats => {
         this.ngZone.run(() => {
+          console.log('NEAT Stats received:', stats); // Debug log
           this.neatStats = stats;
           if (this.currentAlgorithm && this.currentAlgorithm.algorithmType === AlgorithmType.NEAT) {
             this.currentAlgorithm.updateVisualizationInsights();
-            // Update NEAT network visualization if enabled
-            if (this.showNetworkViz && stats) {
+            // Update NEAT network visualization if enabled and stats are available
+            if (this.showNetworkViz && stats && stats.generation > 0) {
               this.createNEATNetworkVisualization();
             }
           }
@@ -238,6 +245,7 @@ export class AiTrainerComponent implements OnInit, OnDestroy, AfterViewInit {
 
   ngOnDestroy(): void {
     this.subscriptions.forEach(sub => sub.unsubscribe());
+    this.stopVisualizationUpdates();
     this.aiService.stopTraining();
   }
 
@@ -374,8 +382,21 @@ export class AiTrainerComponent implements OnInit, OnDestroy, AfterViewInit {
   // Neural Network Visualization Methods
   toggleNetworkVisualization(): void {
     this.showNetworkViz = !this.showNetworkViz;
-    if (this.showNetworkViz && this.selectedAlgorithm === AlgorithmType.DQN) {
-      setTimeout(() => this.initializeNetworkVisualization(), 100);
+    if (this.showNetworkViz) {
+      if (this.selectedAlgorithm === AlgorithmType.DQN) {
+        setTimeout(() => this.initializeNetworkVisualization(), 100);
+      } else if (this.selectedAlgorithm === AlgorithmType.NEAT) {
+        setTimeout(() => {
+          if (this.neatStats) {
+            this.createNEATNetworkVisualization();
+          } else if (this.isRunning) {
+            this.createInitialNEATVisualization();
+          } else {
+            // Create a placeholder for when NEAT is not running
+            this.createInitialNEATVisualization();
+          }
+        }, 100);
+      }
     }
   }
 
@@ -576,26 +597,86 @@ export class AiTrainerComponent implements OnInit, OnDestroy, AfterViewInit {
     if (this.selectedAlgorithm === AlgorithmType.DQN && this.showNetworkViz && this.isDqnActive) {
       // Update network visualization with new data
       if (this.networkData) {
-        // Simulate network activity changes
-        this.networkData.layers.forEach(layer => {
-          layer.neurons.forEach(neuron => {
-            neuron.activation = Math.max(0, Math.min(1, neuron.activation + (Math.random() - 0.5) * 0.1));
+        // Simulate realistic network activity changes based on training progress
+        const trainingProgress = this.trainingStats ? this.trainingStats.episode / this.qLearningConfig.episodes : 0;
+        
+        this.networkData.layers.forEach((layer, layerIndex) => {
+          layer.neurons.forEach((neuron, neuronIndex) => {
+            // Create more realistic activation patterns
+            let baseActivation = 0.3 + (trainingProgress * 0.4); // Base level increases with training
+            
+            // Add some structured variation based on neuron position and training
+            const variation = Math.sin((Date.now() / 1000) + (layerIndex * 10) + (neuronIndex * 5)) * 0.2;
+            const randomNoise = (Math.random() - 0.5) * 0.1;
+            
+            neuron.activation = Math.max(0, Math.min(1, baseActivation + variation + randomNoise));
+            
+            // Update neuron values to match activation
+            neuron.value = neuron.activation;
           });
         });
+        
+        // Update connections based on neuron activations
+        this.networkData.connections.forEach(conn => {
+          const sourceNeuron = this.networkData!.layers.flatMap(l => l.neurons).find(n => n.id === conn.from);
+          const targetNeuron = this.networkData!.layers.flatMap(l => l.neurons).find(n => n.id === conn.to);
+          
+          if (sourceNeuron && targetNeuron) {
+            // Make connection weight influence more visible
+            const influence = sourceNeuron.activation * Math.abs(conn.weight);
+            conn.active = influence > 0.2; // Show connection as active if significant influence
+          }
+        });
+        
         this.drawNetwork();
       }
     }
     
     // Update NEAT network visualization if active
     if (this.selectedAlgorithm === AlgorithmType.NEAT && this.showNetworkViz && this.isRunning) {
-      // Update NEAT network visualization with evolving topology
       if (this.neatStats && this.networkData) {
-        // Simulate evolution by updating neuron activations
-        this.networkData.layers.forEach(layer => {
-          layer.neurons.forEach(neuron => {
-            neuron.activation = Math.max(0, Math.min(1, neuron.activation + (Math.random() - 0.5) * 0.15));
+        // Update NEAT network with evolutionary progress
+        const evolutionProgress = this.neatStats.generation / 50; // Assume max 50 generations
+        
+        this.networkData.layers.forEach((layer, layerIndex) => {
+          layer.neurons.forEach((neuron, neuronIndex) => {
+            // NEAT networks evolve, so show more complex activation patterns over time
+            let baseActivation = 0.2 + (evolutionProgress * 0.5);
+            
+            // Add evolutionary variation - more complex patterns as generations progress
+            const evolutionaryPattern = Math.sin((Date.now() / 800) + (this.neatStats!.generation * 2) + (neuronIndex * 3)) * 0.3;
+            const fitnessInfluence = (this.neatStats!.bestFitness / 100) * 0.2; // Higher fitness = more activation
+            const randomMutation = (Math.random() - 0.5) * 0.15;
+            
+            neuron.activation = Math.max(0, Math.min(1, baseActivation + evolutionaryPattern + fitnessInfluence + randomMutation));
+            neuron.value = neuron.activation;
+            
+            // NEAT can evolve biases too - check layer type instead of neuron type
+            if (layer.type === 'hidden') {
+              neuron.bias = (Math.random() - 0.5) * 0.3 * evolutionProgress;
+            }
           });
         });
+        
+        // Update NEAT connections - some may evolve or become disabled
+        this.networkData.connections.forEach(conn => {
+          const sourceNeuron = this.networkData!.layers.flatMap(l => l.neurons).find(n => n.id === conn.from);
+          const targetNeuron = this.networkData!.layers.flatMap(l => l.neurons).find(n => n.id === conn.to);
+          
+          if (sourceNeuron && targetNeuron) {
+            // NEAT evolves connection weights
+            const evolutionFactor = 1 + (evolutionProgress * 0.5);
+            const influence = sourceNeuron.activation * Math.abs(conn.weight) * evolutionFactor;
+            conn.active = influence > 0.15; // NEAT might have more active connections
+            
+            // Occasionally evolve the weight slightly
+            if (Math.random() < 0.01) {
+              conn.weight += (Math.random() - 0.5) * 0.1;
+              conn.weight = Math.max(-3, Math.min(3, conn.weight));
+            }
+          }
+        });
+        
         this.drawNetwork();
       } else if (this.neatStats) {
         // Create new network visualization if needed
@@ -655,7 +736,7 @@ export class AiTrainerComponent implements OnInit, OnDestroy, AfterViewInit {
     // Update agent path
     if (this.showAgentPath) {
       this.agentPath.push({ ...position });
-      if (this.agentPath.length > this.maxPathLength) {
+      if(this.agentPath.length > this.maxPathLength) {
         this.agentPath.shift(); // Remove oldest position
       }
     }
@@ -941,5 +1022,27 @@ export class AiTrainerComponent implements OnInit, OnDestroy, AfterViewInit {
     };
     
     this.drawNetwork();
+  }
+
+  private visualizationUpdateInterval: any = null;
+
+  private startVisualizationUpdates(): void {
+    if (this.visualizationUpdateInterval) {
+      clearInterval(this.visualizationUpdateInterval);
+    }
+    
+    // Update visualization every 500ms during training
+    this.visualizationUpdateInterval = setInterval(() => {
+      if (this.isRunning && this.showNetworkViz) {
+        this.updateVisualizationInsights();
+      }
+    }, 500);
+  }
+
+  private stopVisualizationUpdates(): void {
+    if (this.visualizationUpdateInterval) {
+      clearInterval(this.visualizationUpdateInterval);
+      this.visualizationUpdateInterval = null;
+    }
   }
 }

@@ -469,7 +469,7 @@
           <div *ngIf="showNetworkViz" class="network-visualization">
             <div class="network-container">
               <svg #networkSvg class="network-svg"></svg>
-              <div *ngIf="!isDqnActive || !networkData" class="network-status">
+              <div *ngIf="!networkData" class="network-status">
                 <mat-icon>info_outline</mat-icon>
                 <p>{{ networkStatusMessage }}</p>
               </div>
@@ -593,9 +593,13 @@
           <div *ngIf="showNetworkViz" class="network-visualization">
             <div class="network-container">
               <svg #networkSvg class="network-svg"></svg>
-              <div *ngIf="!networkData" class="network-status">
+              <div *ngIf="!networkData && !isRunning" class="network-status">
                 <mat-icon>info_outline</mat-icon>
                 <p>{{ networkStatusMessage }}</p>
+              </div>
+              <div *ngIf="!networkData && isRunning" class="network-status">
+                <mat-icon>hourglass_empty</mat-icon>
+                <p>Evolving network topology...</p>
               </div>
             </div>
             <div class="network-legend">
