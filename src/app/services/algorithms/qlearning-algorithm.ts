@@ -97,7 +97,7 @@ export class QLearningAlgorithm extends BaseAlgorithm implements OnDestroy {
 
   canTestModel(): boolean {
     const stats = this.trainingStatsSubject.value;
-    // Check if we have completed at least some training episodes
+    // Allow testing if we have completed at least some training episodes
     return stats !== null && stats.episode > 0;
   }
 

@@ -81,6 +81,7 @@ export class DQNAlgorithm extends BaseAlgorithm implements OnDestroy {
   startTraining(): void {
     this._isDqnActive = true;
     this._networkStatusMessage = 'Neural network is active and learning...';
+    // Pass both trainingConfig and networkConfig to respect episode limits
     this.aiService.startTraining(AlgorithmType.DQN, this.trainingConfig, this.networkConfig);
   }
 
@@ -116,6 +117,7 @@ export class DQNAlgorithm extends BaseAlgorithm implements OnDestroy {
 
   canTestModel(): boolean {
     const stats = this.trainingStatsSubject.value;
+    // Allow testing if we have completed at least some training episodes
     return stats !== null && stats.episode > 0;
   }
 

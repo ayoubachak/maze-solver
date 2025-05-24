@@ -229,8 +229,8 @@ export class AiService {
   }
 
   private async runNEATTrainingLoop(): Promise<void> {
-    // Use maxStepsPerAgent as the generation limit instead of populationSize
-    const maxGenerations = this.neatConfig?.maxStepsPerAgent ? Math.floor(this.neatConfig.maxStepsPerAgent / 10) : 50;
+    // Use the configured maxStepsPerAgent as generation limit, or default to 50
+    const maxGenerations = this.neatConfig?.maxStepsPerAgent || 50;
     
     const runGeneration = async () => {
       if (!this.isPaused && this.neatConfig && this.neatGeneration < maxGenerations) {
@@ -238,8 +238,8 @@ export class AiService {
         await this.runNEATGeneration();
         
         // Check for early termination conditions
-        if (this.neatStagnationCounter >= this.NEAT_MAX_STAGNATION) {
-          this.stopTraining(`NEAT training completed: Stagnated for ${this.NEAT_MAX_STAGNATION} generations. Best fitness: ${this.neatBestFitness.toFixed(2)}`);
+        if (this.neatStagnationCounter >= (this.neatConfig.maxStagnation || this.NEAT_MAX_STAGNATION)) {
+          this.stopTraining(`NEAT training completed: Stagnated for ${this.neatConfig.maxStagnation || this.NEAT_MAX_STAGNATION} generations. Best fitness: ${this.neatBestFitness.toFixed(2)}`);
           return;
         }
         

@@ -70,6 +70,7 @@ export class NEATAlgorithm extends BaseAlgorithm implements OnDestroy {
 
   startTraining(): void {
     this._networkStatusMessage = 'NEAT networks are evolving...';
+    // Use the configured episodes as generation limit instead of hardcoded value
     this.aiService.startTraining(AlgorithmType.NEAT, this.config);
   }
 
